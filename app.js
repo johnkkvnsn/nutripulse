@@ -1123,18 +1123,37 @@ function updateLogoutVisibility() {
   const isOnline = APP.mode === 'online';
   const sidebarLogout = document.getElementById('sidebarLogout');
   const mobLogout = document.getElementById('mobLogout');
-  if (sidebarLogout) sidebarLogout.classList.toggle('hidden', !isOnline);
-  if (mobLogout) mobLogout.classList.toggle('hidden', !isOnline);
+  
+  if (sidebarLogout) {
+    sidebarLogout.classList.remove('hidden');
+    sidebarLogout.innerHTML = isOnline 
+      ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg> Sign Out`
+      : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg> Switch Mode`;
+  }
+  
+  if (mobLogout) {
+    mobLogout.classList.remove('hidden');
+    mobLogout.innerHTML = isOnline
+      ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>`
+      : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`;
+    mobLogout.title = isOnline ? "Sign Out" : "Switch Mode";
+  }
 }
 
 function handleLogout() {
+  const wasOnline = APP.mode === 'online';
+  
   // Clear mode, session, and JWT
   APP.mode = null;
-  APP.user = null;
   APP.token = null;
   localStorage.removeItem('np_mode');
-  localStorage.removeItem('np_user');
   localStorage.removeItem('np_token');
+  
+  // If they were online, clear the user to force relogin. If offline, keep local user data.
+  if (wasOnline) {
+    APP.user = null;
+    localStorage.removeItem('np_user');
+  }
 
   // Hide main app
   document.getElementById('mainApp').classList.add('hidden');
@@ -1152,7 +1171,7 @@ function handleLogout() {
 
   // Show mode selection
   document.getElementById('modeSelect').classList.remove('hidden');
-  showToast('👋 Signed out successfully');
+  showToast(wasOnline ? '👋 Signed out successfully' : '🔄 Switched to mode selection');
 }
 
 async function enterApp(page) {
