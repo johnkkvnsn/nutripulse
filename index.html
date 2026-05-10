@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0f1e" />
+  <meta name="description" content="NutriPulse — Intelligent calorie & wellness tracking" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="NutriPulse" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <!-- Firebase SDKs for Push Notifications -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js"></script>
+  <title>NutriPulse</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <!-- SPLASH -->
+  <div id="splash" class="splash hidden">
+    <div class="splash-bg"></div>
+    <div class="splash-content">
+      <div class="splash-logo">
+        <div class="splash-ring"></div><span>⚡</span>
+      </div>
+      <h1 class="splash-title">NutriPulse</h1>
+      <p class="splash-sub">Intelligent calorie tracking for modern life</p>
+      <button class="btn-cta" id="splashStart">Get Started →</button>
+    </div>
+  </div>
+
+  <!-- MODE SELECTION -->
+  <div id="modeSelect" class="mode-select hidden">
+    <div class="mode-bg"></div>
+    <div class="mode-content">
+      <div class="mode-header">
+        <div class="mode-logo">
+          <div class="mode-ring"></div><span>⚡</span>
+        </div>
+        <h1 class="mode-title">Choose Your Mode</h1>
+        <p class="mode-sub">How would you like to use NutriPulse?</p>
+      </div>
+      <div class="mode-cards">
+        <!-- ONLINE CARD -->
+        <button class="mode-card mode-online" id="modeOnline">
+          <div class="mc-icon-wrap">
+            <svg class="mc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+              <path d="M2 12h20M12 2c2.5 3 4 6.5 4 10s-1.5 7-4 10c-2.5-3-4-6.5-4-10s1.5-7 4-10z" />
+            </svg>
+            <div class="mc-pulse"></div>
+          </div>
+          <div class="mc-label">Online Mode</div>
+          <div class="mc-desc">Sign in to sync your data across devices. Requires internet connection.</div>
+          <div class="mc-features">
+            <span class="mc-feat">☁️ Cloud Sync</span>
+            <span class="mc-feat">🔒 Account</span>
+            <span class="mc-feat">📱 Multi-device</span>
+          </div>
+          <div class="mc-arrow">→</div>
+        </button>
+        <!-- OFFLINE CARD -->
+        <button class="mode-card mode-offline" id="modeOffline">
+          <div class="mc-icon-wrap">
+            <svg class="mc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="5" y="2" width="14" height="20" rx="2" />
+              <path d="M12 18h.01" />
+              <path d="M9 6h6M9 9h6M9 12h4" />
+            </svg>
+            <div class="mc-pulse offline-pulse"></div>
+          </div>
+          <div class="mc-label">Offline Mode</div>
+          <div class="mc-desc">Use locally on this device. No account needed, data saved in browser.</div>
+          <div class="mc-features">
+            <span class="mc-feat">⚡ Instant</span>
+            <span class="mc-feat">🔐 Private</span>
+            <span class="mc-feat">📴 No Internet</span>
+          </div>
+          <div class="mc-arrow">→</div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUTH SCREEN (Online Mode) -->
+  <div id="authScreen" class="auth-screen hidden">
+    <div class="auth-bg"></div>
+    <div class="auth-content">
+      <button class="auth-back" id="authBack">← Back</button>
+      <div class="auth-header">
+        <div class="auth-logo">⚡</div>
+        <h1 class="auth-title" id="authTitle">Sign In</h1>
+        <p class="auth-sub" id="authSub">Welcome back to NutriPulse</p>
+      </div>
+      <div class="auth-box">
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="tabLogin">Sign In</button>
+          <button class="auth-tab" id="tabRegister">Create Account</button>
+        </div>
+        <!-- Login Form -->
+        <form class="auth-form" id="loginForm">
+          <div class="af-group">
+            <label class="af-label">Username</label>
+            <div class="af-input-wrap">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+              </svg>
+              <input type="text" class="af-input" id="loginUsername" placeholder="Enter username" required />
+            </div>
+          </div>
+          <div class="af-group">
+            <label class="af-label">Password</label>
+            <div class="af-input-wrap">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0110 0v4" />
+              </svg>
+              <input type="password" class="af-input" id="loginPassword" placeholder="Enter password" required />
+            </div>
+          </div>
+          <div class="af-error hidden" id="loginError"></div>
+          <button type="submit" class="btn-cta af-submit">Sign In →</button>
+        </form>
+        <!-- Register Form -->
+        <form class="auth-form hidden" id="registerForm">
+          <div class="af-group">
+            <label class="af-label">Username</label>
+            <div class="af-input-wrap">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+              </svg>
+              <input type="text" class="af-input" id="regUsername" placeholder="Choose a username" required />
+            </div>
+          </div>
+          <div class="af-group">
+            <label class="af-label">Email</label>
+            <div class="af-input-wrap">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <path d="M22 7l-10 7L2 7" />
+              </svg>
+              <input type="email" class="af-input" id="regEmail" placeholder="you@example.com" required />
+            </div>
+          </div>
+          <div class="af-group">
+            <label class="af-label">Password</label>
+            <div class="af-input-wrap">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0110 0v4" />
+              </svg>
+              <input type="password" class="af-input" id="regPassword" placeholder="Create password" required
+                minlength="6" />
+            </div>
+          </div>
+          <div class="af-error hidden" id="regError"></div>
+          <button type="submit" class="btn-cta af-submit">Create Account →</button>
+        </form>
+      </div>
+      <div class="auth-footer">
+        <div class="af-divider"><span>or</span></div>
+        <button class="auth-offline-link" id="authGoOffline">Continue in Offline Mode →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INSTALL BANNER -->
+  <div id="installBanner" class="install-banner hidden">
+    <span>📲 Install NutriPulse for offline access</span>
+    <div style="display:flex;gap:8px">
+      <button id="installBtn" class="ib-btn">Install</button>
+      <button id="installDismiss" class="ib-dismiss">✕</button>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="mainApp" class="app hidden">
+
+    <!-- SIDEBAR (web) -->
+    <aside class="sidebar">
+      <div class="sb-brand">
+        <span class="sb-logo">⚡</span>
+        <span class="sb-name">NutriPulse</span>
+        <span class="mode-badge offline" id="modeBadge"><span class="badge-dot"></span>Offline</span>
+      </div>
+      <nav class="sb-nav">
+        <button class="sb-link active" data-page="home">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12L12 3l9 9M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9" />
+          </svg>
+          Dashboard
+        </button>
+        <button class="sb-link" data-page="progress">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+          </svg>
+          Progress
+        </button>
+        <button class="sb-link" data-page="about">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+          </svg>
+          Profile
+        </button>
+        <button class="sb-link" data-page="alerts">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+          Alerts
+          <span class="sb-notif-dot hidden" id="sbAlertDot"></span>
+        </button>
+      </nav>
+      <div class="sb-bottom">
+        <button class="sb-theme" id="darkToggle"><span id="themeIcon">🌙</span> <span id="themeLabel">Dark
+            mode</span></button>
+        <button class="sb-logout hidden" id="sidebarLogout">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          Sign Out
+        </button>
+        <div class="sb-user">
+          <div class="sb-avatar" id="sbAvatar">U</div>
+          <div>
+            <div class="sb-uname" id="sbName">Guest User</div>
+            <div class="sb-ucal" id="sbCal">Set up profile</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- Web Topbar -->
+      <header class="topbar">
+        <div class="tb-left">
+          <h1 class="tb-title" id="tbTitle">Dashboard</h1>
+          <span class="tb-date" id="tbDate"></span>
+        </div>
+        <div class="tb-right">
+          <div class="tb-search">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+            <input id="topbarSearch" type="text" placeholder="Search foods..." class="tb-search-inp" />
+          </div>
+          <div class="tb-avatar" id="tbAvatar">U</div>
+        </div>
+      </header>
+
+      <!-- Mobile Header -->
+      <header class="mob-header">
+        <div class="mob-brand"><span class="mob-logo">⚡</span> NutriPulse</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="mob-icon-btn hidden" id="mobLogout" title="Sign Out">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+          <button class="mob-icon-btn" id="mobTheme">🌙</button>
+          <div class="mob-avatar" id="mobAvatar">U</div>
+        </div>
+      </header>
+
+      <!-- PAGES -->
+      <main class="pages">
+
+        <!-- ─── HOME ─── -->
+        <section class="page active" id="page-home">
+
+          <!-- === WEB DASHBOARD === -->
+          <div class="web-dash">
+            <div class="wd-hero">
+              <div>
+                <div class="wd-greeting" id="greeting">Good morning 👋</div>
+                <h2 class="wd-headline">Track your day</h2>
+              </div>
+              <div class="wd-date" id="wdDate"></div>
+            </div>
+
+            <div class="wd-kpi-row">
+              <div class="kpi-card kpi-consumed">
+                <div class="kpi-icon-wrap">🔥</div>
+                <div class="kpi-body">
+                  <div class="kpi-val" id="kpiConsumed">0</div>
+                  <div class="kpi-lbl">Consumed (kcal)</div>
+                </div>
+              </div>
+              <div class="kpi-card kpi-remaining">
+                <div class="kpi-icon-wrap">✅</div>
+                <div class="kpi-body">
+                  <div class="kpi-val green" id="kpiRemaining">2000</div>
+                  <div class="kpi-lbl">Remaining (kcal)</div>
+                </div>
+              </div>
+              <div class="kpi-card kpi-goal">
+                <div class="kpi-ring-mini">
+                  <canvas id="ringCanvas" width="64" height="64"></canvas>
+                  <span class="ring-mini-pct" id="ringPct">0%</span>
+                </div>
+                <div class="kpi-body">
+                  <div class="kpi-val" id="kpiGoal">2000</div>
+                  <div class="kpi-lbl">Daily Goal (kcal)</div>
+                </div>
+              </div>
+              <div class="kpi-card kpi-streak">
+                <div class="kpi-icon-wrap">⚡</div>
+                <div class="kpi-body">
+                  <div class="kpi-val yellow" id="kpiStreak">0</div>
+                  <div class="kpi-lbl">Day Streak</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="wd-body">
+              <!-- Meals -->
+              <div class="wd-meals">
+                <div class="sec-hd">
+                  <h3 class="sec-title">Today's Meals</h3>
+                  <button class="btn-outline" id="quickAddWeb">+ Log Food</button>
+                </div>
+                <div class="meals-table">
+                  <div class="mt-row mt-header">
+                    <span>Meal</span><span>Items</span><span>Calories</span><span></span>
+                  </div>
+                  <div class="mt-row" data-meal="breakfast">
+                    <span class="mt-meal"><span class="mt-dot breakfast-bg"></span>Breakfast</span>
+                    <span class="mt-items" id="mt-items-breakfast">—</span>
+                    <span class="mt-cal" id="mt-cal-breakfast">0 kcal</span>
+                    <span><button class="mt-add" data-meal="breakfast">+ Add</button></span>
+                  </div>
+                  <div class="mt-row" data-meal="lunch">
+                    <span class="mt-meal"><span class="mt-dot lunch-bg"></span>Lunch</span>
+                    <span class="mt-items" id="mt-items-lunch">—</span>
+                    <span class="mt-cal" id="mt-cal-lunch">0 kcal</span>
+                    <span><button class="mt-add" data-meal="lunch">+ Add</button></span>
+                  </div>
+                  <div class="mt-row" data-meal="dinner">
+                    <span class="mt-meal"><span class="mt-dot dinner-bg"></span>Dinner</span>
+                    <span class="mt-items" id="mt-items-dinner">—</span>
+                    <span class="mt-cal" id="mt-cal-dinner">0 kcal</span>
+                    <span><button class="mt-add" data-meal="dinner">+ Add</button></span>
+                  </div>
+                  <div class="mt-row" data-meal="snacks">
+                    <span class="mt-meal"><span class="mt-dot snacks-bg"></span>Snacks</span>
+                    <span class="mt-items" id="mt-items-snacks">—</span>
+                    <span class="mt-cal" id="mt-cal-snacks">0 kcal</span>
+                    <span><button class="mt-add" data-meal="snacks">+ Add</button></span>
+                  </div>
+                </div>
+
+                <!-- Food log list -->
+                <div class="food-log" id="webFoodLog">
+                  <div class="food-log-empty" id="foodLogEmpty">
+                    <div style="font-size:2rem">🍽</div>
+                    <div>No food logged today</div>
+                    <div style="font-size:0.8rem;opacity:0.5">Click "+ Add" on any meal to start</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Side -->
+              <div class="wd-side">
+                <div class="side-card">
+                  <div class="sc-title">Calorie Breakdown</div>
+                  <div class="donut-wrap"><canvas id="donutChart" width="140" height="140"></canvas></div>
+                  <div class="donut-legend">
+                    <div class="dl-item"><span class="dl-dot" style="background:#ff9a3c"></span>Breakfast<span
+                        class="dl-val" id="dl-breakfast">0</span></div>
+                    <div class="dl-item"><span class="dl-dot" style="background:#00e5a0"></span>Lunch<span
+                        class="dl-val" id="dl-lunch">0</span></div>
+                    <div class="dl-item"><span class="dl-dot" style="background:#7c6cf0"></span>Dinner<span
+                        class="dl-val" id="dl-dinner">0</span></div>
+                    <div class="dl-item"><span class="dl-dot" style="background:#ff6b6b"></span>Snacks<span
+                        class="dl-val" id="dl-snacks">0</span></div>
+                  </div>
+                </div>
+                <div class="side-card">
+                  <div class="sc-title">Log Weight</div>
+                  <div class="weight-row">
+                    <input type="number" class="web-input" id="weightLogInput" placeholder="70.5" step="0.1" />
+                    <button class="btn-accent" id="logWeightBtn">Log</button>
+                  </div>
+                  <div class="weight-history" id="weightHistory"></div>
+                </div>
+                <div class="side-card tip-card">
+                  <div class="sc-title">💡 Tip of the Day</div>
+                  <div class="tip-text" id="tipText"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- /web-dash -->
+
+          <!-- === MOBILE DASHBOARD === -->
+          <div class="mob-dash">
+            <div class="mob-hero">
+              <div class="mob-hero-bg"></div>
+              <div class="mob-greeting" id="mobGreeting">Good morning 👋</div>
+              <div class="mob-ring-wrap">
+                <canvas id="mobRingCanvas" width="180" height="180"></canvas>
+                <div class="mob-ring-center">
+                  <div class="mob-ring-num" id="mobConsumed">0</div>
+                  <div class="mob-ring-sub">of <span id="mobGoal">2000</span> kcal</div>
+                </div>
+              </div>
+              <div class="mob-strip">
+                <div class="mob-strip-item">
+                  <span class="mob-strip-val green" id="mobRemaining">2000</span>
+                  <span class="mob-strip-lbl">Remaining</span>
+                </div>
+                <div class="mob-strip-sep"></div>
+                <div class="mob-strip-item">
+                  <span class="mob-strip-val yellow" id="mobStreak">0</span>
+                  <span class="mob-strip-lbl">Streak 🔥</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mob-body">
+              <div class="mob-sec-hd">
+                <span class="mob-sec-title">Today's Meals</span>
+                <span class="mob-date" id="mobDate"></span>
+              </div>
+              <div class="mob-meal-list">
+                <div class="mob-meal" data-meal="breakfast">
+                  <div class="mm-icon breakfast-bg">🌅</div>
+                  <div class="mm-info">
+                    <div class="mm-name">Breakfast</div>
+                    <div class="mm-sub" id="mm-sub-breakfast">No items</div>
+                  </div>
+                  <div class="mm-right">
+                    <div class="mm-cal" id="mm-cal-breakfast">0 kcal</div>
+                    <button class="mm-btn" data-meal="breakfast">+</button>
+                  </div>
+                </div>
+                <div class="mob-meal" data-meal="lunch">
+                  <div class="mm-icon lunch-bg">☀️</div>
+                  <div class="mm-info">
+                    <div class="mm-name">Lunch</div>
+                    <div class="mm-sub" id="mm-sub-lunch">No items</div>
+                  </div>
+                  <div class="mm-right">
+                    <div class="mm-cal" id="mm-cal-lunch">0 kcal</div>
+                    <button class="mm-btn" data-meal="lunch">+</button>
+                  </div>
+                </div>
+                <div class="mob-meal" data-meal="dinner">
+                  <div class="mm-icon dinner-bg">🌙</div>
+                  <div class="mm-info">
+                    <div class="mm-name">Dinner</div>
+                    <div class="mm-sub" id="mm-sub-dinner">No items</div>
+                  </div>
+                  <div class="mm-right">
+                    <div class="mm-cal" id="mm-cal-dinner">0 kcal</div>
+                    <button class="mm-btn" data-meal="dinner">+</button>
+                  </div>
+                </div>
+                <div class="mob-meal" data-meal="snacks">
+                  <div class="mm-icon snacks-bg">🍎</div>
+                  <div class="mm-info">
+                    <div class="mm-name">Snacks</div>
+                    <div class="mm-sub" id="mm-sub-snacks">No items</div>
+                  </div>
+                  <div class="mm-right">
+                    <div class="mm-cal" id="mm-cal-snacks">0 kcal</div>
+                    <button class="mm-btn" data-meal="snacks">+</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- /mob-dash -->
+        </section>
+
+        <!-- ─── PROFILE ─── -->
+        <section class="page" id="page-about">
+          <div class="page-layout">
+            <div class="page-main">
+              <div class="page-hd">
+                <h1 class="page-title">Your Profile</h1>
+                <p class="page-sub">Personalize your calorie goals</p>
+              </div>
+
+              <!-- MANDATORY SETUP NOTICE (new users) -->
+              <div class="profile-setup-notice hidden" id="profileSetupNotice">
+                <div class="psn-icon">📋</div>
+                <div class="psn-text">
+                  <div class="psn-title">Complete Your Profile</div>
+                  <div class="psn-desc">Please fill in your details below to get personalized calorie recommendations.
+                    This is required to start using NutriPulse.</div>
+                </div>
+              </div>
+
+              <!-- READ-ONLY PROFILE VIEW -->
+              <div id="profileView" class="hidden">
+                <div class="profile-banner" id="profileBanner">
+                  <div class="pb-avatar" id="pbAvatar">👤</div>
+                  <div class="pb-info">
+                    <div class="pb-name" id="pbName">Set up your profile</div>
+                    <div class="pb-goal" id="pbGoal">—</div>
+                  </div>
+                  <div class="pb-cal">
+                    <div class="pb-cal-val" id="pbCalVal">—</div>
+                    <div class="pb-cal-lbl">kcal/day</div>
+                  </div>
+                </div>
+
+                <div class="pv-card">
+                  <div class="pv-header">
+                    <div class="pv-title">Personal Details</div>
+                    <button class="btn-outline" id="editProfileBtn">✏️ Edit Profile</button>
+                  </div>
+                  <div class="pv-grid">
+                    <div class="pv-item">
+                      <div class="pv-label">Name</div>
+                      <div class="pv-value" id="pvName">—</div>
+                    </div>
+                    <div class="pv-item">
+                      <div class="pv-label">Gender</div>
+                      <div class="pv-value" id="pvGender">—</div>
+                    </div>
+                    <div class="pv-item">
+                      <div class="pv-label">Age</div>
+                      <div class="pv-value" id="pvAge">—</div>
+                    </div>
+                    <div class="pv-item">
+                      <div class="pv-label">Height</div>
+                      <div class="pv-value" id="pvHeight">—</div>
+                    </div>
+                    <div class="pv-item">
+                      <div class="pv-label">Weight</div>
+                      <div class="pv-value" id="pvWeight">—</div>
+                    </div>
+                    <div class="pv-item">
+                      <div class="pv-label">Target Weight</div>
+                      <div class="pv-value" id="pvTargetWeight">—</div>
+                    </div>
+                    <div class="pv-item full">
+                      <div class="pv-label">Activity Level</div>
+                      <div class="pv-value" id="pvActivity">—</div>
+                    </div>
+                    <div class="pv-item full">
+                      <div class="pv-label">Goal</div>
+                      <div class="pv-value" id="pvGoal">—</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="result-card" id="resultCardView">
+                  <div class="rc-left">
+                    <div class="rc-label">Daily Calorie Goal</div>
+                    <div class="rc-val" id="resultCaloriesView">—</div>
+                    <div class="rc-break" id="resultBreakdownView"></div>
+                  </div>
+                  <div class="rc-right">
+                    <div class="rc-bmr-label">BMR</div>
+                    <div class="rc-bmr" id="resultBMRView">—</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- EDITABLE PROFILE FORM -->
+              <div id="profileEdit">
+                <div class="profile-banner" id="profileBannerEdit" style="display:none">
+                  <div class="pb-avatar" id="pbAvatarEdit">👤</div>
+                  <div class="pb-info">
+                    <div class="pb-name" id="pbNameEdit">Set up your profile</div>
+                    <div class="pb-goal" id="pbGoalEdit">—</div>
+                  </div>
+                  <div class="pb-cal">
+                    <div class="pb-cal-val" id="pbCalValEdit">—</div>
+                    <div class="pb-cal-lbl">kcal/day</div>
+                  </div>
+                </div>
+                <div class="form-block">
+                  <div class="fb-hd">
+                    <div class="fb-title">Personal Details</div>
+                    <button class="btn-outline hidden" id="cancelEditBtn">✕ Cancel</button>
+                  </div>
+                  <div class="fb-grid">
+                    <div class="fg-group full">
+                      <label class="fg-label">Name</label>
+                      <input type="text" class="web-input" id="inputName" placeholder="Your name" />
+                    </div>
+                    <div class="fg-group full">
+                      <label class="fg-label">Gender</label>
+                      <div class="seg">
+                        <button class="seg-btn active" data-gender="male">♂ Male</button>
+                        <button class="seg-btn" data-gender="female">♀ Female</button>
+                      </div>
+                    </div>
+                    <div class="fg-group">
+                      <label class="fg-label">Age <span class="required-star">*</span></label>
+                      <input type="number" class="web-input" id="inputAge" placeholder="25" min="10" max="100" />
+                    </div>
+                    <div class="fg-group">
+                      <label class="fg-label">Height (cm) <span class="required-star">*</span></label>
+                      <input type="number" class="web-input" id="inputHeight" placeholder="170" />
+                    </div>
+                    <div class="fg-group">
+                      <label class="fg-label">Weight (kg) <span class="required-star">*</span></label>
+                      <input type="number" class="web-input" id="inputWeight" placeholder="70" step="0.1" />
+                    </div>
+                    <div class="fg-group">
+                      <label class="fg-label">Target Weight (kg)</label>
+                      <input type="number" class="web-input" id="inputTargetWeight" placeholder="65" step="0.1" />
+                    </div>
+                    <div class="fg-group full">
+                      <label class="fg-label">Activity Level</label>
+                      <select class="web-input" id="inputActivity">
+                        <option value="1.2">Sedentary (little/no exercise)</option>
+                        <option value="1.375">Lightly active (1–3 days/week)</option>
+                        <option value="1.55" selected>Moderately active (3–5 days/week)</option>
+                        <option value="1.725">Very active (6–7 days/week)</option>
+                        <option value="1.9">Super active (physical job + training)</option>
+                      </select>
+                    </div>
+                    <div class="fg-group full">
+                      <label class="fg-label">Goal</label>
+                      <div class="goal-seg">
+                        <button class="gs-btn" data-goal="lose">🔥 Lose Weight</button>
+                        <button class="gs-btn active" data-goal="maintain">⚖️ Maintain</button>
+                        <button class="gs-btn" data-goal="gain">💪 Build Muscle</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="result-card hidden" id="resultCard">
+                    <div class="rc-left">
+                      <div class="rc-label">Daily Calorie Goal</div>
+                      <div class="rc-val" id="resultCalories">—</div>
+                      <div class="rc-break" id="resultBreakdown"></div>
+                    </div>
+                    <div class="rc-right">
+                      <div class="rc-bmr-label">BMR</div>
+                      <div class="rc-bmr" id="resultBMR">—</div>
+                    </div>
+                  </div>
+
+                  <button class="btn-cta" id="saveProfile">Save Profile →</button>
+                </div>
+              </div>
+
+              <!-- Mobile weight log -->
+              <div class="form-block mob-only">
+                <div class="fb-title">Log Weight</div>
+                <div class="weight-row">
+                  <input type="number" class="web-input" id="weightLogMob" placeholder="kg" step="0.1" />
+                  <button class="btn-accent" id="logWeightMob">Log</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Profile Side (web only) -->
+            <div class="page-side web-only">
+              <div class="side-card">
+                <div class="sc-title">Log Weight</div>
+                <div class="weight-row">
+                  <input type="number" class="web-input" id="weightLogInput2" placeholder="kg" step="0.1" />
+                  <button class="btn-accent" id="logWeightBtn2">Log</button>
+                </div>
+                <div class="weight-history" id="weightHistory2"></div>
+              </div>
+              <div class="side-card">
+                <div class="sc-title">BMR Formula</div>
+                <div class="bmr-info">
+                  <p>Uses the <strong>Mifflin-St Jeor</strong> equation — the most accurate for most people.</p>
+                  <div class="bmr-code">
+                    <code>Men: 10w + 6.25h − 5a + 5</code>
+                    <code>Women: 10w + 6.25h − 5a − 161</code>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── PROGRESS ─── -->
+        <section class="page" id="page-progress">
+          <div class="page-hd">
+            <h1 class="page-title">Progress</h1>
+            <p class="page-sub">Your wellness journey at a glance</p>
+          </div>
+
+          <div class="prog-kpi-bar">
+            <div class="pk-item">
+              <div class="pk-val" id="pkStreak">0</div>
+              <div class="pk-lbl">🔥 Streak</div>
+            </div>
+            <div class="pk-item">
+              <div class="pk-val" id="pkAvg">—</div>
+              <div class="pk-lbl">📊 Avg kcal</div>
+            </div>
+            <div class="pk-item">
+              <div class="pk-val" id="pkDelta">—</div>
+              <div class="pk-lbl">⚖️ Weight Δ</div>
+            </div>
+            <div class="pk-item">
+              <div class="pk-val" id="pkDays">0</div>
+              <div class="pk-lbl">📅 Days Logged</div>
+            </div>
+          </div>
+
+          <div class="prog-bar-card">
+            <div class="pbc-hd">
+              <span>Weight Goal Progress</span>
+              <span class="pbc-pct" id="wPct">0%</span>
+            </div>
+            <div class="pbc-track">
+              <div class="pbc-fill" id="wFill" style="width:0%"></div>
+            </div>
+            <div class="pbc-ends"><span id="pStart">—</span><span>Target: <b id="pTarget">—</b></span></div>
+          </div>
+
+          <div class="charts-layout">
+            <div class="chart-box wide">
+              <div class="cb-title">Calorie Intake — Last 14 Days</div>
+              <div class="cb-body"><canvas id="calorieChart"></canvas></div>
+            </div>
+            <div class="chart-box">
+              <div class="cb-title">Weight History</div>
+              <div class="cb-body"><canvas id="weightChart"></canvas></div>
+            </div>
+            <div class="chart-box">
+              <div class="cb-title">Meal Distribution</div>
+              <div class="cb-body center"><canvas id="mealPieChart" width="160" height="160"></canvas></div>
+            </div>
+          </div>
+
+          <div class="avg-table-card">
+            <div class="atc-title">Weekly Averages by Meal</div>
+            <div class="avg-table">
+              <div class="at-row at-head"><span>Meal</span><span>Avg kcal</span><span>% of total</span></div>
+              <div class="at-row"><span>🌅 Breakfast</span><span id="atBf">0</span><span id="atBfP">0%</span></div>
+              <div class="at-row"><span>☀️ Lunch</span><span id="atLu">0</span><span id="atLuP">0%</span></div>
+              <div class="at-row"><span>🌙 Dinner</span><span id="atDi">0</span><span id="atDiP">0%</span></div>
+              <div class="at-row"><span>🍎 Snacks</span><span id="atSn">0</span><span id="atSnP">0%</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── ALERTS ─── -->
+        <section class="page" id="page-alerts">
+          <div class="page-hd">
+            <h1 class="page-title">Alerts & Reminders</h1>
+            <p class="page-sub">Manage notifications and stay on track</p>
+          </div>
+
+          <div class="alerts-layout">
+            <!-- Notification Permission Card -->
+            <div class="alert-perm-card" id="alertPermCard">
+              <div class="apc-icon">🔔</div>
+              <div class="apc-body">
+                <div class="apc-title">Enable Notifications</div>
+                <div class="apc-desc">Get meal reminders and goal alerts to stay consistent with your tracking.</div>
+              </div>
+              <button class="btn-accent" id="alertEnableBtn">Enable</button>
+            </div>
+
+            <!-- Notification Status -->
+            <div class="alert-status-card hidden" id="alertStatusCard">
+              <div class="asc-icon">✅</div>
+              <div class="asc-body">
+                <div class="asc-title">Notifications Active</div>
+                <div class="asc-desc" id="alertStatusDesc">You'll receive meal reminders and goal alerts.</div>
+              </div>
+            </div>
+
+            <!-- Reminder Settings -->
+            <div class="alerts-section">
+              <div class="as-header">
+                <h3 class="as-title">Meal Reminders</h3>
+                <span class="as-badge">Customizable</span>
+              </div>
+              <div class="reminder-grid">
+                <div class="reminder-card" data-reminder="breakfast">
+                  <div class="rc-left-side">
+                    <span class="rc-emoji">🌅</span>
+                    <div class="rc-info">
+                      <div class="rc-name">Breakfast</div>
+                      <div class="rc-time">8:00 AM</div>
+                    </div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" class="reminder-toggle" data-meal="breakfast" checked />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div class="reminder-card" data-reminder="lunch">
+                  <div class="rc-left-side">
+                    <span class="rc-emoji">☀️</span>
+                    <div class="rc-info">
+                      <div class="rc-name">Lunch</div>
+                      <div class="rc-time">12:30 PM</div>
+                    </div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" class="reminder-toggle" data-meal="lunch" checked />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div class="reminder-card" data-reminder="dinner">
+                  <div class="rc-left-side">
+                    <span class="rc-emoji">🌙</span>
+                    <div class="rc-info">
+                      <div class="rc-name">Dinner</div>
+                      <div class="rc-time">7:00 PM</div>
+                    </div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" class="reminder-toggle" data-meal="dinner" checked />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Goal Alerts -->
+            <div class="alerts-section">
+              <div class="as-header">
+                <h3 class="as-title">Goal Alerts</h3>
+                <span class="as-badge">Smart</span>
+              </div>
+              <div class="goal-alerts-list">
+                <div class="goal-alert-item">
+                  <div class="gai-left">
+                    <span class="gai-icon">🎯</span>
+                    <div class="gai-info">
+                      <div class="gai-name">Calorie Goal Reached</div>
+                      <div class="gai-desc">Alert when you hit your daily target</div>
+                    </div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" class="goal-alert-toggle" data-alert="calorie-goal" checked />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div class="goal-alert-item">
+                  <div class="gai-left">
+                    <span class="gai-icon">⚠️</span>
+                    <div class="gai-info">
+                      <div class="gai-name">Over Budget Warning</div>
+                      <div class="gai-desc">Warn when exceeding daily calories</div>
+                    </div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" class="goal-alert-toggle" data-alert="over-budget" checked />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div class="goal-alert-item">
+                  <div class="gai-left">
+                    <span class="gai-icon">🔥</span>
+                    <div class="gai-info">
+                      <div class="gai-name">Streak Milestones</div>
+                      <div class="gai-desc">Celebrate logging streaks (3, 7, 14, 30 days)</div>
+                    </div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" class="goal-alert-toggle" data-alert="streak" checked />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div class="goal-alert-item">
+                  <div class="gai-left">
+                    <span class="gai-icon">📊</span>
+                    <div class="gai-info">
+                      <div class="gai-name">Weekly Summary</div>
+                      <div class="gai-desc">Get a weekly report every Sunday</div>
+                    </div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" class="goal-alert-toggle" data-alert="weekly-report" checked />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Notification History -->
+            <div class="alerts-section">
+              <div class="as-header">
+                <h3 class="as-title">Recent Notifications</h3>
+                <button class="btn-outline btn-sm" id="clearAlertsBtn">Clear All</button>
+              </div>
+              <div class="notif-history" id="notifHistory">
+                <div class="notif-empty" id="notifEmpty">
+                  <div style="font-size:2rem">🔕</div>
+                  <div>No notifications yet</div>
+                  <div style="font-size:.78rem;opacity:.5">Your alerts and reminders will appear here</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div><!-- /content -->
+
+    <!-- MOBILE NAV -->
+    <nav class="mob-nav">
+      <button class="mn-item active" data-page="home">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M3 12L12 3l9 9M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9" />
+        </svg>
+        <span>Home</span>
+      </button>
+      <button class="mn-item" data-page="progress">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+        </svg>
+        <span>Progress</span>
+      </button>
+      <button class="mn-fab" id="fabAdd">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+      </button>
+      <button class="mn-item" data-page="about">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+        </svg>
+        <span>Profile</span>
+      </button>
+      <button class="mn-item" data-page="alerts" id="mobNotif">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+        <span>Alerts</span>
+      </button>
+    </nav>
+
+  </div><!-- /app -->
+
+  <!-- FOOD MODAL -->
+  <div class="modal-bg hidden" id="foodModal">
+    <div class="modal-box" id="foodModalBox">
+      <div class="modal-bar"></div>
+      <div class="modal-hd">
+        <h3 class="modal-title" id="modalTitle">Add Food</h3>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <div class="modal-bd">
+        <div class="modal-search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          <input type="text" id="foodSearch" class="modal-search-inp" placeholder="Search food database..." />
+        </div>
+        <div class="modal-suggestions" id="foodSuggestions"></div>
+        <div class="modal-divider"><span>or enter custom</span></div>
+        <div class="modal-form">
+          <div class="mf-row">
+            <div class="mf-group">
+              <label class="fg-label">Food Name</label>
+              <input type="text" class="web-input" id="customFoodName" placeholder="e.g. Chicken Rice" />
+            </div>
+            <div class="mf-group" style="max-width:120px">
+              <label class="fg-label">Calories</label>
+              <input type="number" class="web-input" id="customFoodCal" placeholder="350" />
+            </div>
+          </div>
+          <button class="btn-cta" id="addFoodBtn">Add to Meal →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast hidden" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>

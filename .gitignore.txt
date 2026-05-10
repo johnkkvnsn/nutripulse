@@ -1,0 +1,5 @@
+.venv/
+node_modules/
+firebase-service-account.json
+__pycache__/
+*.pyc
