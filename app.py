@@ -416,9 +416,10 @@ def scan_meal(current_user):
         with open(temp_path, 'wb') as f:
             f.write(img_bytes)
 
-        api_key = os.environ.get("ROBOFLOW_API_KEY")
-        if not api_key:
-            return jsonify({'error': 'Server misconfiguration: Roboflow API key missing'}), 500
+        # api_key = os.environ.get("ROBOFLOW_API_KEY")
+        # if not api_key:
+        #     return jsonify({'error': 'Server misconfiguration: Roboflow API key missing'}), 500
+        api_key = "CcyFG9jTf2DgWiirPFOa"
 
         client = InferenceHTTPClient(
             api_url="https://serverless.roboflow.com",
