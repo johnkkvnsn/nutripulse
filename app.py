@@ -14,6 +14,12 @@ from decimal import Decimal
 import mysql.connector
 import jwt
 import os
+import base64
+import tempfile
+import uuid
+import json
+import re
+from inference_sdk import InferenceHTTPClient
 import firebase_admin
 from firebase_admin import credentials, messaging as fcm_messaging
 
@@ -367,6 +373,104 @@ def add_meal(current_user):
         'remaining': max(0, tdee - total),
         'alerts_fired': alerts_fired,
     }), 201
+
+
+@app.route('/api/v1/meals/scan', methods=['POST'])
+@token_required
+def scan_meal(current_user):
+    FOOD_CALORIES = {
+        "apple": 95, "banana": 105, "orange": 62, "pizza": 285, "burger": 250, "fries": 312,
+        "salad": 150, "sandwich": 250, "rice": 205, "chicken": 165, "beef": 250, "pork": 242,
+        "fish": 206, "egg": 78, "bread": 79, "pasta": 131, "noodle": 138, "soup": 150,
+        "cheese": 113, "milk": 103, "yogurt": 100, "ice cream": 137, "cake": 235, "cookie": 50,
+        "chocolate": 150, "candy": 100, "donut": 195, "muffin": 377, "pancake": 86, "waffle": 82,
+        "pie": 237, "croissant": 231, "bagel": 245, "cereal": 110, "oatmeal": 158, "granola": 110,
+        "toast": 75, "butter": 102, "jam": 56, "honey": 64, "syrup": 52, "ketchup": 15,
+        "mustard": 3, "mayonnaise": 94, "salsa": 4, "guacamole": 50, "hummus": 27, "peanut butter": 94,
+        "jelly": 53, "soda": 140, "juice": 110, "coffee": 2, "tea": 2, "water": 0, "beer": 153,
+        "wine": 125, "liquor": 97, "cocktail": 150, "steak": 679, "sushi": 200, "taco": 156,
+        "hot dog": 150, "bacon": 43, "sausage": 133, "ham": 46, "turkey": 135, "lamb": 250,
+        "shrimp": 84, "crab": 82, "lobster": 89, "clam": 74, "oyster": 41, "mussel": 86,
+        "scallop": 69, "squid": 78, "octopus": 82, "onion": 40, "garlic": 4, "tomato": 22,
+        "potato": 161, "carrot": 41, "broccoli": 55, "cauliflower": 25, "spinach": 7, "lettuce": 5,
+        "cucumber": 16, "pepper": 24, "mushroom": 15, "corn": 132, "peas": 118, "bean": 227
+    }
+
+    data = request.get_json(silent=True) or {}
+    image_data = data.get('image', '')
+    if not image_data:
+        return jsonify({'error': 'No image provided'}), 400
+
+    if ',' in image_data:
+        image_data = image_data.split(',')[1]
+
+    try:
+        img_bytes = base64.b64decode(image_data)
+        if len(img_bytes) > 5 * 1024 * 1024:
+            return jsonify({'error': 'Image too large, please use a smaller photo'}), 400
+    except Exception:
+        return jsonify({'error': 'Invalid image data'}), 400
+
+    temp_path = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4().hex}.jpg")
+    try:
+        with open(temp_path, 'wb') as f:
+            f.write(img_bytes)
+
+        api_key = os.environ.get("ROBOFLOW_API_KEY")
+        if not api_key:
+            return jsonify({'error': 'Server misconfiguration: Roboflow API key missing'}), 500
+
+        client = InferenceHTTPClient(
+            api_url="https://serverless.roboflow.com",
+            api_key=api_key
+        )
+        result = client.run_workflow(
+            workspace_name="john-lloyd-apao",
+            workflow_id="detect-and-classify",
+            images={"image": temp_path},
+            use_cache=True
+        )
+
+        result_str = json.dumps(result).lower()
+        food_name = None
+
+        for key in ['top', 'class', 'class_name', 'predicted_class', 'label', 'prediction']:
+            match = re.search(rf'"{key}"\s*:\s*"([^"]+)"', result_str)
+            if match:
+                food_name = match.group(1)
+                break
+        
+        if not food_name:
+            for food in FOOD_CALORIES:
+                if food in result_str:
+                    food_name = food
+                    break
+
+        if not food_name:
+            return jsonify({'error': 'Could not identify food, please enter manually'}), 400
+
+        food_name_clean = food_name.replace("_", " ").strip()
+        
+        calories = 200
+        if food_name_clean in FOOD_CALORIES:
+            calories = FOOD_CALORIES[food_name_clean]
+        else:
+            for food, cal in FOOD_CALORIES.items():
+                if food in food_name_clean or food_name_clean in food:
+                    calories = cal
+                    break
+
+        return jsonify({
+            'food_name': food_name_clean.capitalize(),
+            'calories': calories
+        })
+
+    except Exception as e:
+        print(f"Roboflow error: {e}")
+        return jsonify({'error': 'Could not identify food, please enter manually'}), 400
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
 
 @app.route('/api/v1/meals/<int:meal_id>', methods=['DELETE'])

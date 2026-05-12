@@ -959,6 +959,18 @@
         </div>
         <div class="modal-suggestions" id="foodSuggestions"></div>
         <div class="modal-divider"><span>or enter custom</span></div>
+        <button class="btn-outline" id="cameraBtn" style="width:100%; margin-bottom: 15px; display:flex; align-items:center; justify-content:center; gap:8px;">
+          📷 Scan Food with Camera
+        </button>
+        <div id="cameraContainer" class="hidden" style="margin-bottom:15px; text-align:center;">
+          <video id="cameraPreview" autoplay playsinline style="width:100%; max-height:250px; object-fit:cover; border-radius:8px; background:#000;"></video>
+          <canvas id="cameraCanvas" style="display:none;"></canvas>
+          <div style="margin-top:10px; display:flex; gap:10px; justify-content:center;">
+             <button class="btn-cta" id="captureBtn">📸 Capture</button>
+             <button class="btn-outline" id="cancelCameraBtn">Cancel</button>
+          </div>
+          <div id="scanLoader" class="hidden" style="margin-top:10px; font-weight:bold;">Scanning food... ⏳</div>
+        </div>
         <div class="modal-form">
           <div class="mf-row">
             <div class="mf-group">

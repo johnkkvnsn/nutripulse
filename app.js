@@ -85,7 +85,7 @@ function load() {
     const d = localStorage.getItem('np_dark');
     if (d !== null) APP.dark = d === 'true';
     APP.gender = localStorage.getItem('np_gender') || 'male';
-    APP.goal   = localStorage.getItem('np_goal') || 'maintain';
+    APP.goal = localStorage.getItem('np_goal') || 'maintain';
     const as = localStorage.getItem('np_alertSettings');
     if (as) APP.alertSettings = JSON.parse(as);
     const notifs = localStorage.getItem('np_notifications');
@@ -133,13 +133,13 @@ function calcBMR(u) {
   if (!u) return 2000;
   const w = parseFloat(u.weight), h = parseFloat(u.height), a = parseInt(u.age);
   if (!w || !h || !a) return 2000;
-  return Math.round(10*w + 6.25*h - 5*a + (u.gender === 'female' ? -161 : 5));
+  return Math.round(10 * w + 6.25 * h - 5 * a + (u.gender === 'female' ? -161 : 5));
 }
 function calcTDEE(u) {
   if (!u) return 2000;
-  const bmr  = calcBMR(u);
-  const act  = parseFloat(u.activity || 1.55);
-  let tdee   = Math.round(bmr * act);
+  const bmr = calcBMR(u);
+  const act = parseFloat(u.activity || 1.55);
+  let tdee = Math.round(bmr * act);
   if (u.goal === 'lose') tdee -= 500;
   else if (u.goal === 'gain') tdee += 300;
   return Math.max(1200, tdee);
@@ -148,15 +148,15 @@ function calcTDEE(u) {
 // ─── LOG HELPERS ─────────────────────────
 function todayLog() {
   if (!APP.logs[APP.today])
-    APP.logs[APP.today] = { breakfast:[], lunch:[], dinner:[], snacks:[] };
+    APP.logs[APP.today] = { breakfast: [], lunch: [], dinner: [], snacks: [] };
   return APP.logs[APP.today];
 }
 function mealCal(meal, date) {
   const log = APP.logs[date || APP.today];
-  return (log?.[meal] || []).reduce((s, f) => s + (f.cal||0), 0);
+  return (log?.[meal] || []).reduce((s, f) => s + (f.cal || 0), 0);
 }
 function totalCal(date) {
-  return ['breakfast','lunch','dinner','snacks'].reduce((s,m) => s + mealCal(m, date), 0);
+  return ['breakfast', 'lunch', 'dinner', 'snacks'].reduce((s, m) => s + mealCal(m, date), 0);
 }
 function calcStreak() {
   let streak = 0;
@@ -170,40 +170,40 @@ function calcStreak() {
 
 // ─── FOOD DB ─────────────────────────────
 const FOOD_DB = [
-  { name:'Rice (1 cup cooked)', cal:206 },
-  { name:'Chicken Breast (100g)', cal:165 },
-  { name:'Egg (1 large)', cal:72 },
-  { name:'Banana (medium)', cal:105 },
-  { name:'Apple (medium)', cal:95 },
-  { name:'Oatmeal (1 cup)', cal:154 },
-  { name:'Greek Yogurt (100g)', cal:59 },
-  { name:'Salmon (100g)', cal:208 },
-  { name:'Broccoli (1 cup)', cal:55 },
-  { name:'Whole Milk (1 cup)', cal:149 },
-  { name:'Bread (1 slice)', cal:79 },
-  { name:'Pasta (100g cooked)', cal:157 },
-  { name:'Cheddar Cheese (30g)', cal:120 },
-  { name:'Avocado (half)', cal:120 },
-  { name:'Peanut Butter (2 tbsp)', cal:188 },
-  { name:'Almonds (28g)', cal:164 },
-  { name:'Orange Juice (1 cup)', cal:112 },
-  { name:'Black Coffee (1 cup)', cal:2 },
-  { name:'Latte (1 cup)', cal:120 },
-  { name:'Protein Shake', cal:150 },
-  { name:'Beef Burger (patty)', cal:290 },
-  { name:'Pizza Slice', cal:285 },
-  { name:'French Fries (medium)', cal:365 },
-  { name:'Cola (330ml)', cal:140 },
-  { name:'Chocolate Bar (50g)', cal:260 },
-  { name:'Ice Cream (scoop)', cal:130 },
-  { name:'Baked Potato', cal:161 },
-  { name:'Tuna (100g)', cal:144 },
-  { name:'Tofu (100g)', cal:76 },
-  { name:'Sweet Potato (medium)', cal:103 },
+  { name: 'Rice (1 cup cooked)', cal: 206 },
+  { name: 'Chicken Breast (100g)', cal: 165 },
+  { name: 'Egg (1 large)', cal: 72 },
+  { name: 'Banana (medium)', cal: 105 },
+  { name: 'Apple (medium)', cal: 95 },
+  { name: 'Oatmeal (1 cup)', cal: 154 },
+  { name: 'Greek Yogurt (100g)', cal: 59 },
+  { name: 'Salmon (100g)', cal: 208 },
+  { name: 'Broccoli (1 cup)', cal: 55 },
+  { name: 'Whole Milk (1 cup)', cal: 149 },
+  { name: 'Bread (1 slice)', cal: 79 },
+  { name: 'Pasta (100g cooked)', cal: 157 },
+  { name: 'Cheddar Cheese (30g)', cal: 120 },
+  { name: 'Avocado (half)', cal: 120 },
+  { name: 'Peanut Butter (2 tbsp)', cal: 188 },
+  { name: 'Almonds (28g)', cal: 164 },
+  { name: 'Orange Juice (1 cup)', cal: 112 },
+  { name: 'Black Coffee (1 cup)', cal: 2 },
+  { name: 'Latte (1 cup)', cal: 120 },
+  { name: 'Protein Shake', cal: 150 },
+  { name: 'Beef Burger (patty)', cal: 290 },
+  { name: 'Pizza Slice', cal: 285 },
+  { name: 'French Fries (medium)', cal: 365 },
+  { name: 'Cola (330ml)', cal: 140 },
+  { name: 'Chocolate Bar (50g)', cal: 260 },
+  { name: 'Ice Cream (scoop)', cal: 130 },
+  { name: 'Baked Potato', cal: 161 },
+  { name: 'Tuna (100g)', cal: 144 },
+  { name: 'Tofu (100g)', cal: 76 },
+  { name: 'Sweet Potato (medium)', cal: 103 },
 ];
 
-const MEAL_COLORS = { breakfast:'#fb923c', lunch:'#22d3a0', dinner:'#a78bfa', snacks:'#fb7185' };
-const MEAL_BG_CLASS = { breakfast:'breakfast-bg', lunch:'lunch-bg', dinner:'dinner-bg', snacks:'snacks-bg' };
+const MEAL_COLORS = { breakfast: '#fb923c', lunch: '#22d3a0', dinner: '#a78bfa', snacks: '#fb7185' };
+const MEAL_BG_CLASS = { breakfast: 'breakfast-bg', lunch: 'lunch-bg', dinner: 'dinner-bg', snacks: 'snacks-bg' };
 
 // ─── RING DRAWING ─────────────────────────
 function drawRing(canvasId, consumed, goal, size = 64) {
@@ -211,23 +211,23 @@ function drawRing(canvasId, consumed, goal, size = 64) {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
-  canvas.width  = size * dpr;
+  canvas.width = size * dpr;
   canvas.height = size * dpr;
-  canvas.style.width  = size + 'px';
+  canvas.style.width = size + 'px';
   canvas.style.height = size + 'px';
   ctx.scale(dpr, dpr);
 
-  const cx = size/2, cy = size/2;
-  const r  = size * 0.4;
+  const cx = size / 2, cy = size / 2;
+  const r = size * 0.4;
   const lw = size * 0.1;
   const over = consumed > goal;
-  const pct  = Math.min(consumed / (goal||1), 1);
+  const pct = Math.min(consumed / (goal || 1), 1);
 
   ctx.clearRect(0, 0, size, size);
 
   // Track
   ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.strokeStyle = over ? 'rgba(248,113,113,.15)' : 'rgba(34,211,160,.12)';
   ctx.lineWidth = lw;
   ctx.stroke();
@@ -235,9 +235,9 @@ function drawRing(canvasId, consumed, goal, size = 64) {
   if (pct > 0) {
     const grad = ctx.createLinearGradient(cx - r, cy, cx + r, cy);
     if (over) { grad.addColorStop(0, '#f87171'); grad.addColorStop(1, '#fb923c'); }
-    else       { grad.addColorStop(0, '#22d3a0'); grad.addColorStop(1, '#38bdf8'); }
+    else { grad.addColorStop(0, '#22d3a0'); grad.addColorStop(1, '#38bdf8'); }
     ctx.beginPath();
-    ctx.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + pct * Math.PI*2);
+    ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + pct * Math.PI * 2);
     ctx.strokeStyle = grad;
     ctx.lineWidth = lw;
     ctx.lineCap = 'round';
@@ -252,7 +252,7 @@ function updateDonut(bfCal, luCal, diCal, snCal) {
   const ctx = document.getElementById('donutChart');
   if (!ctx) return;
   const total = bfCal + luCal + diCal + snCal || 1;
-  const data  = [bfCal, luCal, diCal, snCal];
+  const data = [bfCal, luCal, diCal, snCal];
   const colors = Object.values(MEAL_COLORS);
 
   if (donutChart) donutChart.destroy();
@@ -266,7 +266,7 @@ function updateDonut(bfCal, luCal, diCal, snCal) {
     },
     options: {
       cutout: '70%', responsive: false,
-      plugins: { legend: { display:false }, tooltip: { enabled:false } },
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
       animation: { duration: 400 }
     }
   });
@@ -274,11 +274,11 @@ function updateDonut(bfCal, luCal, diCal, snCal) {
 
 // ─── MAIN UI UPDATE ───────────────────────
 function updateHomeUI() {
-  const goal     = calcTDEE(APP.user);
+  const goal = calcTDEE(APP.user);
   const consumed = totalCal(APP.today);
-  const remaining= Math.max(0, goal - consumed);
-  const streak   = calcStreak();
-  const pct      = Math.round(Math.min(consumed/goal*100, 100));
+  const remaining = Math.max(0, goal - consumed);
+  const streak = calcStreak();
+  const pct = Math.round(Math.min(consumed / goal * 100, 100));
 
   // — WEB KPIs —
   setText('kpiConsumed', consumed);
@@ -289,22 +289,22 @@ function updateHomeUI() {
   setText('ringPct', pct + '%');
 
   // — WEB meals table —
-  const meals = ['breakfast','lunch','dinner','snacks'];
+  const meals = ['breakfast', 'lunch', 'dinner', 'snacks'];
   meals.forEach(m => {
-    const cal   = mealCal(m);
+    const cal = mealCal(m);
     const items = todayLog()[m] || [];
     setText('mt-cal-' + m, cal + ' kcal');
-    setText('mt-items-' + m, items.length ? items.length + ' item' + (items.length>1?'s':'') : '—');
+    setText('mt-items-' + m, items.length ? items.length + ' item' + (items.length > 1 ? 's' : '') : '—');
   });
 
   // Web food log
   buildWebFoodLog();
 
   // Side donut
-  const [bf,lu,di,sn] = meals.map(m => mealCal(m));
+  const [bf, lu, di, sn] = meals.map(m => mealCal(m));
   updateDonut(bf, lu, di, sn);
   setText('dl-breakfast', bf); setText('dl-lunch', lu);
-  setText('dl-dinner', di);   setText('dl-snacks', sn);
+  setText('dl-dinner', di); setText('dl-snacks', sn);
 
   // — MOBILE —
   drawRing('mobRingCanvas', consumed, goal, 180);
@@ -314,10 +314,10 @@ function updateHomeUI() {
   setText('mobStreak', streak);
 
   meals.forEach(m => {
-    const cal   = mealCal(m);
+    const cal = mealCal(m);
     const items = todayLog()[m] || [];
     setText('mm-cal-' + m, cal + ' kcal');
-    setText('mm-sub-' + m, items.length ? items.map(f => f.name).slice(0,2).join(', ') + (items.length>2?'…':'') : 'No items');
+    setText('mm-sub-' + m, items.length ? items.map(f => f.name).slice(0, 2).join(', ') + (items.length > 2 ? '…' : '') : 'No items');
   });
 
   // Greeting
@@ -328,8 +328,8 @@ function updateHomeUI() {
   setText('mobGreeting', greet);
 
   // Dates
-  const today = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
-  const shortDate = new Date().toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const shortDate = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   setText('wdDate', today);
   setText('tbDate', shortDate);
   setText('mobDate', shortDate);
@@ -349,12 +349,12 @@ function updateHomeUI() {
 function buildWebFoodLog() {
   const log = todayLog();
   const container = document.getElementById('webFoodLog');
-  const empty     = document.getElementById('foodLogEmpty');
+  const empty = document.getElementById('foodLogEmpty');
   if (!container) return;
 
   const allItems = [];
-  ['breakfast','lunch','dinner','snacks'].forEach(m => {
-    (log[m] || []).forEach((f,i) => allItems.push({ ...f, meal:m, idx:i }));
+  ['breakfast', 'lunch', 'dinner', 'snacks'].forEach(m => {
+    (log[m] || []).forEach((f, i) => allItems.push({ ...f, meal: m, idx: i }));
   });
 
   if (!allItems.length) {
@@ -408,7 +408,7 @@ function showProfileView() {
   // Banner
   setText('pbAvatar', u.name ? u.name[0].toUpperCase() + '🎯' : '👤');
   setText('pbName', u.name || 'No name set');
-  const goalLabel = { lose:'Lose Weight 🔥', maintain:'Maintain ⚖️', gain:'Build Muscle 💪' }[u.goal || APP.goal] || '—';
+  const goalLabel = { lose: 'Lose Weight 🔥', maintain: 'Maintain ⚖️', gain: 'Build Muscle 💪' }[u.goal || APP.goal] || '—';
   setText('pbGoal', goalLabel);
   setText('pbCalVal', calcTDEE(u));
 
@@ -425,14 +425,14 @@ function showProfileView() {
     '1.55': 'Moderately active', '1.725': 'Very active', '1.9': 'Super active'
   };
   setText('pvActivity', actLabels[String(u.activity)] || 'Moderately active');
-  setText('pvGoal', { lose:'Lose Weight 🔥', maintain:'Maintain ⚖️', gain:'Build Muscle 💪' }[u.goal || APP.goal] || '—');
+  setText('pvGoal', { lose: 'Lose Weight 🔥', maintain: 'Maintain ⚖️', gain: 'Build Muscle 💪' }[u.goal || APP.goal] || '—');
 
   // Result card in view mode
   const tdee = calcTDEE(u);
   const bmr = calcBMR(u);
   setText('resultCaloriesView', tdee);
   setText('resultBMRView', bmr);
-  const goalMap = { lose:'Deficit −500 kcal', maintain:'Maintenance', gain:'Surplus +300 kcal' };
+  const goalMap = { lose: 'Deficit −500 kcal', maintain: 'Maintenance', gain: 'Surplus +300 kcal' };
   setText('resultBreakdownView', `BMR: ${bmr} · Activity: ×${u.activity || 1.55} · ${goalMap[u.goal || APP.goal] || ''}`);
 
   // Weight history
@@ -459,12 +459,12 @@ function showProfileEdit(isMandatory) {
 
   // Fill form with current data
   const u = APP.user || {};
-  if (u.name)         setVal('inputName', u.name);
-  if (u.age)          setVal('inputAge', u.age);
-  if (u.height)       setVal('inputHeight', u.height);
-  if (u.weight)       setVal('inputWeight', u.weight);
+  if (u.name) setVal('inputName', u.name);
+  if (u.age) setVal('inputAge', u.age);
+  if (u.height) setVal('inputHeight', u.height);
+  if (u.weight) setVal('inputWeight', u.weight);
   if (u.targetWeight) setVal('inputTargetWeight', u.targetWeight);
-  if (u.activity)     setVal('inputActivity', u.activity);
+  if (u.activity) setVal('inputActivity', u.activity);
 
   document.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.gender === (u.gender || APP.gender)));
   document.querySelectorAll('.gs-btn').forEach(b => b.classList.toggle('active', b.dataset.goal === (u.goal || APP.goal)));
@@ -479,10 +479,10 @@ function showResultCard() {
   if (!card || !APP.user) return;
   card.classList.remove('hidden');
   const tdee = calcTDEE(APP.user);
-  const bmr  = calcBMR(APP.user);
+  const bmr = calcBMR(APP.user);
   setText('resultCalories', tdee);
   setText('resultBMR', bmr);
-  const goalMap = { lose:'Deficit −500 kcal', maintain:'Maintenance', gain:'Surplus +300 kcal' };
+  const goalMap = { lose: 'Deficit −500 kcal', maintain: 'Maintenance', gain: 'Surplus +300 kcal' };
   setText('resultBreakdown', `BMR: ${bmr} · Activity: ×${APP.user.activity || 1.55} · ${goalMap[APP.goal] || ''}`);
 
   // Also update the view-mode result card
@@ -498,7 +498,7 @@ function renderWeightHistory(id) {
   if (!keys.length) { el.innerHTML = '<div style="font-size:.78rem;color:var(--text3);padding:8px 0">No entries yet</div>'; return; }
   el.innerHTML = keys.map(k => `
     <div class="wh-item">
-      <span>${new Date(k).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+      <span>${new Date(k).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
       <span class="wh-val">${APP.weights[k]} kg</span>
     </div>
   `).join('');
@@ -506,7 +506,7 @@ function renderWeightHistory(id) {
 
 // ─── PROGRESS UI ─────────────────────────
 function updateProgressUI() {
-  const goal  = calcTDEE(APP.user);
+  const goal = calcTDEE(APP.user);
   const streak = calcStreak();
 
   // Last 14 days
@@ -516,11 +516,11 @@ function updateProgressUI() {
     const key = d.toISOString().split('T')[0];
     days.push(key);
     calData.push(totalCal(key));
-    labels.push(d.toLocaleDateString('en-US', { month:'short', day:'numeric' }));
+    labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
   }
 
-  const withData = days.filter((_,i) => calData[i] > 0);
-  const avgCal   = withData.length ? Math.round(withData.reduce((_,d) => _ + totalCal(d), 0) / withData.length) : 0;
+  const withData = days.filter((_, i) => calData[i] > 0);
+  const avgCal = withData.length ? Math.round(withData.reduce((_, d) => _ + totalCal(d), 0) / withData.length) : 0;
 
   setText('pkStreak', streak);
   setText('pkAvg', avgCal || '—');
@@ -530,17 +530,17 @@ function updateProgressUI() {
   const wKeys = Object.keys(APP.weights).sort();
   const wVals = wKeys.map(k => APP.weights[k]);
   if (wVals.length >= 2) {
-    const delta = (wVals[wVals.length-1] - parseFloat(APP.user?.weight || wVals[0])).toFixed(1);
+    const delta = (wVals[wVals.length - 1] - parseFloat(APP.user?.weight || wVals[0])).toFixed(1);
     setText('pkDelta', (delta > 0 ? '+' : '') + delta + ' kg');
   }
 
   // Weight progress bar
-  const startW  = parseFloat(APP.user?.weight || 0);
+  const startW = parseFloat(APP.user?.weight || 0);
   const targetW = parseFloat(APP.user?.targetWeight || 0);
   if (startW && targetW && wVals.length) {
-    const curr  = wVals[wVals.length - 1];
+    const curr = wVals[wVals.length - 1];
     const total = Math.abs(targetW - startW);
-    const done  = total > 0 ? Math.min(100, Math.round(Math.abs(curr - startW) / total * 100)) : 0;
+    const done = total > 0 ? Math.min(100, Math.round(Math.abs(curr - startW) / total * 100)) : 0;
     document.getElementById('wFill').style.width = done + '%';
     setText('wPct', done + '%');
     setText('pStart', startW + ' kg');
@@ -548,30 +548,30 @@ function updateProgressUI() {
   }
 
   // Weekly meal averages
-  const mealTotals = { breakfast:0, lunch:0, dinner:0, snacks:0 };
+  const mealTotals = { breakfast: 0, lunch: 0, dinner: 0, snacks: 0 };
   const cnt = Math.max(withData.length, 1);
   withData.forEach(d => {
-    ['breakfast','lunch','dinner','snacks'].forEach(m => { mealTotals[m] += mealCal(m, d); });
+    ['breakfast', 'lunch', 'dinner', 'snacks'].forEach(m => { mealTotals[m] += mealCal(m, d); });
   });
-  const totalAvg = Object.values(mealTotals).reduce((a,b)=>a+b,0) || 1;
-  setText('atBf', Math.round(mealTotals.breakfast/cnt)); setText('atBfP', Math.round(mealTotals.breakfast/totalAvg*100)+'%');
-  setText('atLu', Math.round(mealTotals.lunch/cnt));     setText('atLuP', Math.round(mealTotals.lunch/totalAvg*100)+'%');
-  setText('atDi', Math.round(mealTotals.dinner/cnt));    setText('atDiP', Math.round(mealTotals.dinner/totalAvg*100)+'%');
-  setText('atSn', Math.round(mealTotals.snacks/cnt));    setText('atSnP', Math.round(mealTotals.snacks/totalAvg*100)+'%');
+  const totalAvg = Object.values(mealTotals).reduce((a, b) => a + b, 0) || 1;
+  setText('atBf', Math.round(mealTotals.breakfast / cnt)); setText('atBfP', Math.round(mealTotals.breakfast / totalAvg * 100) + '%');
+  setText('atLu', Math.round(mealTotals.lunch / cnt)); setText('atLuP', Math.round(mealTotals.lunch / totalAvg * 100) + '%');
+  setText('atDi', Math.round(mealTotals.dinner / cnt)); setText('atDiP', Math.round(mealTotals.dinner / totalAvg * 100) + '%');
+  setText('atSn', Math.round(mealTotals.snacks / cnt)); setText('atSnP', Math.round(mealTotals.snacks / totalAvg * 100) + '%');
 
   buildCharts(labels, calData, goal, wKeys, wVals, mealTotals);
 }
 
 function buildCharts(labels, calData, goal, wKeys, wVals, mealTotals) {
   const dark = APP.dark;
-  const gridC  = dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-  const tickC  = dark ? '#445a78' : '#8a9bb0';
+  const gridC = dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  const tickC = dark ? '#445a78' : '#8a9bb0';
   const tooltipBg = dark ? '#162033' : '#ffffff';
 
   Chart.defaults.font.family = 'Plus Jakarta Sans';
 
   if (APP.charts.cal) APP.charts.cal.destroy();
-  if (APP.charts.wt)  APP.charts.wt.destroy();
+  if (APP.charts.wt) APP.charts.wt.destroy();
   if (APP.charts.pie) APP.charts.pie.destroy();
 
   // Calorie chart
@@ -585,21 +585,21 @@ function buildCharts(labels, calData, goal, wKeys, wVals, mealTotals) {
           label: 'Calories',
           data: calData,
           backgroundColor: calData.map(v => v > goal ? 'rgba(248,113,113,.65)' : 'rgba(34,211,160,.65)'),
-          borderColor:      calData.map(v => v > goal ? '#f87171' : '#22d3a0'),
+          borderColor: calData.map(v => v > goal ? '#f87171' : '#22d3a0'),
           borderWidth: 1.5, borderRadius: 6, borderSkipped: false,
         }, {
           type: 'line', label: 'Goal',
           data: Array(calData.length).fill(goal),
           borderColor: 'rgba(56,189,248,.6)', borderWidth: 2,
-          borderDash: [6,3], pointRadius: 0, fill: false,
+          borderDash: [6, 3], pointRadius: 0, fill: false,
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend:{ display:false }, tooltip:{ backgroundColor:tooltipBg, titleColor:tickC, bodyColor:dark?'#e2eaf8':'#0f1b2d', borderColor:'rgba(34,211,160,.3)', borderWidth:1 }},
+        plugins: { legend: { display: false }, tooltip: { backgroundColor: tooltipBg, titleColor: tickC, bodyColor: dark ? '#e2eaf8' : '#0f1b2d', borderColor: 'rgba(34,211,160,.3)', borderWidth: 1 } },
         scales: {
-          x: { grid:{ color:gridC }, ticks:{ color:tickC, maxRotation:45, font:{ size:11 } }},
-          y: { grid:{ color:gridC }, ticks:{ color:tickC }, beginAtZero:true }
+          x: { grid: { color: gridC }, ticks: { color: tickC, maxRotation: 45, font: { size: 11 } } },
+          y: { grid: { color: gridC }, ticks: { color: tickC }, beginAtZero: true }
         }
       }
     });
@@ -608,13 +608,13 @@ function buildCharts(labels, calData, goal, wKeys, wVals, mealTotals) {
   // Weight chart
   const wtCtx = document.getElementById('weightChart')?.getContext('2d');
   if (wtCtx && wVals.length > 0) {
-    const wtGrad = wtCtx.createLinearGradient(0,0,0,160);
+    const wtGrad = wtCtx.createLinearGradient(0, 0, 0, 160);
     wtGrad.addColorStop(0, 'rgba(56,189,248,.25)');
     wtGrad.addColorStop(1, 'rgba(56,189,248,0)');
     APP.charts.wt = new Chart(wtCtx, {
       type: 'line',
       data: {
-        labels: wKeys.map(k => new Date(k).toLocaleDateString('en-US',{month:'short',day:'numeric'})),
+        labels: wKeys.map(k => new Date(k).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
         datasets: [{
           label: 'Weight (kg)', data: wVals,
           borderColor: '#38bdf8', backgroundColor: wtGrad,
@@ -624,10 +624,10 @@ function buildCharts(labels, calData, goal, wKeys, wVals, mealTotals) {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend:{ display:false }, tooltip:{ backgroundColor:tooltipBg, titleColor:tickC, bodyColor:dark?'#e2eaf8':'#0f1b2d', borderColor:'rgba(56,189,248,.3)', borderWidth:1 }},
+        plugins: { legend: { display: false }, tooltip: { backgroundColor: tooltipBg, titleColor: tickC, bodyColor: dark ? '#e2eaf8' : '#0f1b2d', borderColor: 'rgba(56,189,248,.3)', borderWidth: 1 } },
         scales: {
-          x: { grid:{ color:gridC }, ticks:{ color:tickC, font:{size:11} }},
-          y: { grid:{ color:gridC }, ticks:{ color:tickC }}
+          x: { grid: { color: gridC }, ticks: { color: tickC, font: { size: 11 } } },
+          y: { grid: { color: gridC }, ticks: { color: tickC } }
         }
       }
     });
@@ -640,14 +640,14 @@ function buildCharts(labels, calData, goal, wKeys, wVals, mealTotals) {
     APP.charts.pie = new Chart(pieCtx, {
       type: 'doughnut',
       data: {
-        labels: ['Breakfast','Lunch','Dinner','Snacks'],
-        datasets: [{ data: pieData, backgroundColor: Object.values(MEAL_COLORS), borderWidth:0, hoverOffset:6 }]
+        labels: ['Breakfast', 'Lunch', 'Dinner', 'Snacks'],
+        datasets: [{ data: pieData, backgroundColor: Object.values(MEAL_COLORS), borderWidth: 0, hoverOffset: 6 }]
       },
       options: {
         responsive: false, cutout: '65%',
         plugins: {
-          legend: { position:'bottom', labels:{ color:tickC, font:{size:11}, padding:8 }},
-          tooltip: { backgroundColor:tooltipBg, titleColor:tickC, bodyColor:dark?'#e2eaf8':'#0f1b2d' }
+          legend: { position: 'bottom', labels: { color: tickC, font: { size: 11 }, padding: 8 } },
+          tooltip: { backgroundColor: tooltipBg, titleColor: tickC, bodyColor: dark ? '#e2eaf8' : '#0f1b2d' }
         }
       }
     });
@@ -657,7 +657,7 @@ function buildCharts(labels, calData, goal, wKeys, wVals, mealTotals) {
 // ─── FOOD MODAL ──────────────────────────
 function openModal(meal) {
   APP.currentMeal = meal;
-  const names = { breakfast:'Breakfast 🌅', lunch:'Lunch ☀️', dinner:'Dinner 🌙', snacks:'Snacks 🍎' };
+  const names = { breakfast: 'Breakfast 🌅', lunch: 'Lunch ☀️', dinner: 'Dinner 🌙', snacks: 'Snacks 🍎' };
   setText('modalTitle', 'Add to ' + (names[meal] || meal));
   document.getElementById('foodModal').classList.remove('hidden');
   setVal('foodSearch', '');
@@ -674,7 +674,7 @@ function closeModal() {
 function searchFood(q) {
   const container = document.getElementById('foodSuggestions');
   if (!q.trim()) { container.innerHTML = ''; return; }
-  const results = FOOD_DB.filter(f => f.name.toLowerCase().includes(q.toLowerCase())).slice(0,8);
+  const results = FOOD_DB.filter(f => f.name.toLowerCase().includes(q.toLowerCase())).slice(0, 8);
   container.innerHTML = results.map(f => `
     <div class="sugg-item" data-name="${f.name}" data-cal="${f.cal}">
       <span>${f.name}</span>
@@ -753,18 +753,18 @@ function navigate(page) {
   document.querySelectorAll('.mn-item[data-page]').forEach(b => b.classList.toggle('active', b.dataset.page === page));
 
   // Topbar title
-  const titles = { home:'Dashboard', about:'Profile', progress:'Progress', alerts:'Alerts & Reminders' };
+  const titles = { home: 'Dashboard', about: 'Profile', progress: 'Progress', alerts: 'Alerts & Reminders' };
   setText('tbTitle', titles[page] || '');
 
-  if (page === 'about')    updateProfileUI();
+  if (page === 'about') updateProfileUI();
   if (page === 'progress') updateProgressUI();
-  if (page === 'alerts')   updateAlertsUI();
+  if (page === 'alerts') updateAlertsUI();
 }
 
 // ─── DARK MODE ───────────────────────────
 function applyTheme() {
   document.body.classList.toggle('light', !APP.dark);
-  const icon  = APP.dark ? '🌙' : '☀️';
+  const icon = APP.dark ? '🌙' : '☀️';
   const label = APP.dark ? 'Dark mode' : 'Light mode';
   setText('themeIcon', icon);
   setText('themeLabel', label);
@@ -792,7 +792,7 @@ function showToast(msg) {
 
 // ─── HELPERS ─────────────────────────────
 function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
-function setVal(id, val)  { const el = document.getElementById(id); if (el) el.value = val; }
+function setVal(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
 
 // ─── PWA INSTALL ─────────────────────────
 let deferredPrompt = null;
@@ -824,12 +824,12 @@ function registerSW() {
 // ─── NOTIFICATIONS ───────────────────────
 // Initialize Firebase
 const firebaseConfig = {
-    apiKey: "AIzaSyChxGof0XLuq3d9Zfo1EU9kMS9ThQmYGWA",
-    authDomain: "nutripulse-d01e0.firebaseapp.com",
-    projectId: "nutripulse-d01e0",
-    storageBucket: "nutripulse-d01e0.firebasestorage.app",
-    messagingSenderId: "767403174340",
-    appId: "1:767403174340:web:1fb5861447ca8aa63f9c91",
+  apiKey: "AIzaSyChxGof0XLuq3d9Zfo1EU9kMS9ThQmYGWA",
+  authDomain: "nutripulse-d01e0.firebaseapp.com",
+  projectId: "nutripulse-d01e0",
+  storageBucket: "nutripulse-d01e0.firebasestorage.app",
+  messagingSenderId: "767403174340",
+  appId: "1:767403174340:web:1fb5861447ca8aa63f9c91",
 };
 
 // Firebase Cloud Messaging enabled
@@ -918,9 +918,9 @@ function sendFcmTokenToServer() {
 
 function scheduleMealReminders() {
   const reminders = [
-    { h:8,  m:0,  msg:'🌅 Time to log your breakfast!', meal:'breakfast' },
-    { h:12, m:30, msg:'☀️ Log your lunch!', meal:'lunch' },
-    { h:19, m:0,  msg:'🌙 Don\'t forget dinner — log it in NutriPulse!', meal:'dinner' },
+    { h: 8, m: 0, msg: '🌅 Time to log your breakfast!', meal: 'breakfast' },
+    { h: 12, m: 30, msg: '☀️ Log your lunch!', meal: 'lunch' },
+    { h: 19, m: 0, msg: '🌙 Don\'t forget dinner — log it in NutriPulse!', meal: 'dinner' },
   ];
   const now = new Date();
   reminders.forEach(({ h, m, msg, meal }) => {
@@ -1003,9 +1003,9 @@ function renderNotifHistory() {
 }
 
 function addNotification(type, title, desc, iconType) {
-  const icons = { meal:'🍽', goal:'🎯', warning:'⚠️', streak:'🔥', report:'📊' };
+  const icons = { meal: '🍽', goal: '🎯', warning: '⚠️', streak: '🔥', report: '📊' };
   const notif = {
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     type: iconType || type,
     icon: icons[iconType || type] || '🔔',
     title, desc,
@@ -1053,7 +1053,7 @@ function formatNotifTime(iso) {
   if (diffHrs < 24) return diffHrs + 'h ago';
   const diffDays = Math.floor(diffHrs / 24);
   if (diffDays < 7) return diffDays + 'd ago';
-  return d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function generateInitialNotifications() {
@@ -1123,14 +1123,14 @@ function updateLogoutVisibility() {
   const isOnline = APP.mode === 'online';
   const sidebarLogout = document.getElementById('sidebarLogout');
   const mobLogout = document.getElementById('mobLogout');
-  
+
   if (sidebarLogout) {
     sidebarLogout.classList.remove('hidden');
-    sidebarLogout.innerHTML = isOnline 
+    sidebarLogout.innerHTML = isOnline
       ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg> Sign Out`
       : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg> Switch Mode`;
   }
-  
+
   if (mobLogout) {
     mobLogout.classList.remove('hidden');
     mobLogout.innerHTML = isOnline
@@ -1142,13 +1142,13 @@ function updateLogoutVisibility() {
 
 function handleLogout() {
   const wasOnline = APP.mode === 'online';
-  
+
   // Clear mode, session, and JWT
   APP.mode = null;
   APP.token = null;
   localStorage.removeItem('np_mode');
   localStorage.removeItem('np_token');
-  
+
   // If they were online, clear the user to force relogin. If offline, keep local user data.
   if (wasOnline) {
     APP.user = null;
@@ -1392,6 +1392,84 @@ function init() {
     );
   };
 
+  // Camera API integration
+  let cameraStream = null;
+  const cameraContainer = document.getElementById('cameraContainer');
+  const cameraPreview = document.getElementById('cameraPreview');
+  const cameraBtn = document.getElementById('cameraBtn');
+  const captureBtn = document.getElementById('captureBtn');
+  const cancelCameraBtn = document.getElementById('cancelCameraBtn');
+  const scanLoader = document.getElementById('scanLoader');
+  const cameraCanvas = document.getElementById('cameraCanvas');
+
+  cameraBtn.onclick = async () => {
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      cameraPreview.srcObject = cameraStream;
+      cameraContainer.classList.remove('hidden');
+      cameraBtn.classList.add('hidden');
+      scanLoader.classList.add('hidden');
+    } catch (err) {
+      showToast('Camera access denied. Please allow camera permission and try again.');
+    }
+  };
+
+  cancelCameraBtn.onclick = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(t => t.stop());
+      cameraStream = null;
+    }
+    cameraContainer.classList.add('hidden');
+    cameraBtn.classList.remove('hidden');
+  };
+
+  captureBtn.onclick = async () => {
+    if (!cameraStream) return;
+    
+    cameraCanvas.width = cameraPreview.videoWidth;
+    cameraCanvas.height = cameraPreview.videoHeight;
+    const ctx = cameraCanvas.getContext('2d');
+    ctx.drawImage(cameraPreview, 0, 0);
+    const base64Image = cameraCanvas.toDataURL('image/jpeg', 0.8);
+    
+    cameraStream.getTracks().forEach(t => t.stop());
+    cameraStream = null;
+    cameraPreview.srcObject = null;
+    
+    captureBtn.classList.add('hidden');
+    cancelCameraBtn.classList.add('hidden');
+    scanLoader.classList.remove('hidden');
+    
+    try {
+      const token = localStorage.getItem('np_token');
+      const res = await fetch('/api/v1/meals/scan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ image: base64Image })
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        showToast(data.error || 'Could not identify food, please enter manually');
+      } else {
+        document.getElementById('customFoodName').value = data.food_name || '';
+        document.getElementById('customFoodCal').value = data.calories || '';
+        showToast('Food recognized successfully!');
+      }
+    } catch (e) {
+      showToast('Could not identify food, please enter manually');
+    } finally {
+      cameraContainer.classList.add('hidden');
+      cameraBtn.classList.remove('hidden');
+      captureBtn.classList.remove('hidden');
+      cancelCameraBtn.classList.remove('hidden');
+      scanLoader.classList.add('hidden');
+    }
+  };
+
   // Profile — gender
   document.querySelectorAll('.seg-btn[data-gender]').forEach(b => b.onclick = () => {
     APP.gender = b.dataset.gender;
@@ -1418,12 +1496,12 @@ function init() {
 
   // Save profile
   document.getElementById('saveProfile').onclick = async () => {
-    const name   = document.getElementById('inputName').value.trim();
-    const age    = document.getElementById('inputAge').value;
+    const name = document.getElementById('inputName').value.trim();
+    const age = document.getElementById('inputAge').value;
     const height = document.getElementById('inputHeight').value;
     const weight = document.getElementById('inputWeight').value;
     const targetWeight = document.getElementById('inputTargetWeight').value;
-    const activity     = document.getElementById('inputActivity').value;
+    const activity = document.getElementById('inputActivity').value;
 
     if (!age || !height || !weight) { showToast('Please fill in age, height, and weight'); return; }
 

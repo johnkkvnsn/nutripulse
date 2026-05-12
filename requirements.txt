@@ -5,3 +5,4 @@ PyJWT==2.8.0
 flask-cors==4.0.0
 firebase-admin>=6.0.0
 gunicorn==21.2.0
+inference-sdk==0.3.8
