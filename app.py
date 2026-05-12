@@ -426,7 +426,7 @@ def scan_meal(current_user):
         )
         result = client.run_workflow(
             workspace_name="john-lloyd-apao",
-            workflow_id="Detect-and-Classify",
+            workflow_id="detect-count-and-visualize",
             images={"image": temp_path},
             use_cache=True
         )
