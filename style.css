@@ -448,7 +448,8 @@ button {
   margin-left: var(--sidebar-w);
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
+  height: 100dvh;
+  overflow-y: auto;
 }
 
 /* ─── TOPBAR (web) ─── */
@@ -457,13 +458,19 @@ button {
   align-items: center;
   justify-content: space-between;
   height: var(--header-h);
-  background: var(--card);
+  background: rgba(17, 24, 39, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
   padding: 0 28px;
   position: sticky;
   top: 0;
   z-index: 100;
   flex-shrink: 0;
+}
+
+body.light .topbar {
+  background: rgba(255, 255, 255, 0.85);
 }
 
 .tb-left {
@@ -541,11 +548,17 @@ button {
   align-items: center;
   justify-content: space-between;
   padding: 12px 18px;
-  background: var(--bg);
+  background: rgba(10, 15, 30, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   z-index: 100;
+}
+
+body.light .mob-header {
+  background: rgba(244, 246, 251, 0.88);
 }
 
 .mob-brand {
@@ -586,7 +599,6 @@ button {
 /* ─── PAGES ─── */
 .pages {
   flex: 1;
-  overflow-y: auto;
 }
 
 .page {
@@ -1808,13 +1820,18 @@ select.web-input {
   left: 0;
   right: 0;
   height: var(--mob-nav-h);
-  background: var(--bg);
+  background: rgba(10, 15, 30, 0.9);
   border-top: 1px solid var(--border);
   align-items: center;
   justify-content: space-around;
   padding-bottom: env(safe-area-inset-bottom, 0);
   z-index: 200;
   backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+body.light .mob-nav {
+  background: rgba(244, 246, 251, 0.9);
 }
 
 .mn-item {
