@@ -813,7 +813,6 @@ def _add_notification(user_id, ntype, icon, title, body):
     _send_push(user_id, title, body)
 
 def _send_push(user_id, title, body):
-    """Send a push notification via FCM to all of a user's devices."""
     tokens = db_query(
         'SELECT token FROM fcm_tokens WHERE user_id = %s',
         (user_id,)
@@ -821,26 +820,21 @@ def _send_push(user_id, title, body):
     for row in tokens:
         try:
             message = fcm_messaging.Message(
-                notification=fcm_messaging.Notification(
-                    title=title,
-                    body=body,
-                ),
+                data={                          # ← data only, no notification key
+                    'title': title,
+                    'body':  body,
+                    'icon':  '/icons/icon-192.png',
+                    'url':   '/'
+                },
                 webpush=fcm_messaging.WebpushConfig(
-                    notification=fcm_messaging.WebpushNotification(
-                        icon='/icons/icon-192.png',
-                        badge='/icons/icon-192.png'
-                    ),
-                    fcm_options=fcm_messaging.WebpushFcmOptions(
-                        link='/'
-                    )
+                    headers={'Urgency': 'high'}
                 ),
                 token=row['token'],
             )
             response = fcm_messaging.send(message)
-            print(f'[FCM] Successfully sent push to user {user_id}: {response}')
+            print(f'[FCM] Sent to user {user_id}: {response}')
         except Exception as e:
-            print(f'[FCM] Failed to send to token: {e}')
-            # Optionally delete invalid tokens
+            print(f'[FCM] Failed: {e}')
             if 'not registered' in str(e).lower() or 'invalid' in str(e).lower():
                 db_query('DELETE FROM fcm_tokens WHERE token = %s',
                          (row['token'],), commit=True)

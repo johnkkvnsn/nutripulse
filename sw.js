@@ -18,13 +18,14 @@ firebase.initializeApp({
 });
 const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
-  console.log('[SW] Received background message ', payload);
-  const notificationTitle = payload.notification?.title || 'NutriPulse';
-  const notificationOptions = {
-    body: payload.notification?.body,
-    icon: './icons/icon-192.png'
+  console.log('[SW] Background message received:', payload);
+  const title = payload.data?.title || 'NutriPulse';  // ← payload.data not payload.notification
+  const options = {
+    body: payload.data?.body || '',
+    icon: payload.data?.icon || './icons/icon-192.png',
+    data: { url: payload.data?.url || './' }
   };
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  self.registration.showNotification(title, options);
 });
 
 const CACHE_NAME = 'nutripulse-v2.0';
