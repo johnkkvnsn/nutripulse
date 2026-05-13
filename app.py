@@ -24,7 +24,8 @@ import firebase_admin
 from firebase_admin import credentials, messaging as fcm_messaging
 
 # ─── FIREBASE ADMIN INIT ────────────────────
-cred = credentials.Certificate('firebase-service-account.json')
+service_account_info = json.loads(os.environ["FIREBASE_SERVICE_ACCOUNT_JSON"])
+cred = credentials.Certificate(service_account_info)
 firebase_admin.initialize_app(cred)
 
 
