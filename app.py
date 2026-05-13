@@ -744,8 +744,9 @@ def save_fcm_token():
     if not user_id:
         return jsonify({'status': 'error', 'message': 'User not identified'}), 400
 
-    # Delete old tokens for this user, insert new
-    db_query('DELETE FROM fcm_tokens WHERE user_id = %s', (user_id,), commit=True)
+    # Use an UPSERT-like logic: Delete only THIS specific token if it exists elsewhere, 
+    # then insert it for this user. This allows one user to have multiple device tokens.
+    db_query('DELETE FROM fcm_tokens WHERE token = %s', (token,), commit=True)
     db_query('INSERT INTO fcm_tokens (user_id, token) VALUES (%s, %s)',
              (user_id, token), commit=True)
     print(f'[FCM] Saved token for user {user_id}: {token[:30]}...')
@@ -824,10 +825,19 @@ def _send_push(user_id, title, body):
                     title=title,
                     body=body,
                 ),
+                webpush=fcm_messaging.WebpushConfig(
+                    notification=fcm_messaging.WebpushNotification(
+                        icon='/icons/icon-192.png',
+                        badge='/icons/icon-192.png'
+                    ),
+                    fcm_options=fcm_messaging.WebpushFcmOptions(
+                        link='/'
+                    )
+                ),
                 token=row['token'],
             )
             response = fcm_messaging.send(message)
-            print(f'[FCM] Successfully sent push to user {user_id}')
+            print(f'[FCM] Successfully sent push to user {user_id}: {response}')
         except Exception as e:
             print(f'[FCM] Failed to send to token: {e}')
             # Optionally delete invalid tokens
