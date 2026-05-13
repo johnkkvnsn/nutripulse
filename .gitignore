@@ -1,0 +1,22 @@
+# Python virtual environments
+.venv/                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+venv/
+ENV/
+env/
+
+# Node dependencies
+node_modules/
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment variables and secrets
+.env
+firebase-service-account.json
+
+# Logs and databases
+*.log
+*.sqlite
