@@ -1,5 +1,5 @@
 # Python virtual environments
-.venv/                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+.venv/
 venv/
 ENV/
 env/
@@ -15,8 +15,25 @@ __pycache__/
 
 # Environment variables and secrets
 .env
+.env.*
 firebase-service-account.json
 
 # Logs and databases
 *.log
 *.sqlite
+*.db
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build/dist
+dist/
+build/
+*.egg-info/
