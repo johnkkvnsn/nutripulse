@@ -17,6 +17,7 @@ const APP = {
   dark: true,
   mode: null,   // 'online' | 'offline' | null
   alertSettings: {
+    enabled: true, // Master toggle
     reminders: { breakfast: true, lunch: true, dinner: true },
     goalAlerts: { 'calorie-goal': true, 'over-budget': true, 'streak': true, 'weekly-report': true }
   },
@@ -863,6 +864,8 @@ async function requestNotifPermission() {
           console.log('[FCM] Token obtained:', token.substring(0, 20) + '...');
           pendingFcmToken = token;
           localStorage.setItem('np_fcm_token', token);
+          APP.alertSettings.enabled = true; // Set to true when enabling
+          save();
           showToast('🔔 Push notifications enabled!');
 
           // Send to server if user is authenticated
@@ -886,6 +889,8 @@ async function requestNotifPermission() {
       console.warn('[FCM] FCM setup failed, falling back to local reminders:', e);
     }
     // Fallback to local
+    APP.alertSettings.enabled = true;
+    save();
     showToast('🔔 Local meal reminders enabled!');
     scheduleMealReminders();
   }
@@ -916,7 +921,10 @@ function sendFcmTokenToServer() {
   });
 }
 
+let remindersScheduled = false;
 function scheduleMealReminders() {
+  if (remindersScheduled) return;
+  remindersScheduled = true;
   const reminders = [
     { h: 8, m: 0, msg: '🌅 Time to log your breakfast!', meal: 'breakfast' },
     { h: 12, m: 30, msg: '☀️ Log your lunch!', meal: 'lunch' },
@@ -924,12 +932,12 @@ function scheduleMealReminders() {
   ];
   const now = new Date();
   reminders.forEach(({ h, m, msg, meal }) => {
-    if (!APP.alertSettings.reminders[meal]) return;
+    if (!APP.alertSettings.enabled || !APP.alertSettings.reminders[meal]) return;
     const t = new Date(); t.setHours(h, m, 0, 0);
     let delay = t - now;
     if (delay < 0) delay += 86400000;
     setTimeout(() => {
-      if (Notification.permission === 'granted') {
+      if (APP.alertSettings.enabled && Notification.permission === 'granted') {
         new Notification('NutriPulse', { body: msg, icon: 'icons/icon-192.png' });
       }
       addNotification('meal', msg.split(' ')[0], msg, 'meal');
@@ -938,7 +946,15 @@ function scheduleMealReminders() {
 }
 
 // ─── ALERTS PAGE LOGIC ───────────────────
-function updateAlertsUI() {
+async function updateAlertsUI() {
+  // Sync settings from server if online
+  if (isOnline()) {
+    const res = await api('/alerts/settings');
+    if (res.status === 'success') {
+      APP.alertSettings = res.settings;
+      save();
+    }
+  }
   // Show permission or status card
   const permCard = document.getElementById('alertPermCard');
   const statusCard = document.getElementById('alertStatusCard');
@@ -951,6 +967,9 @@ function updateAlertsUI() {
   }
 
   // Restore toggle states
+  const masterToggle = document.getElementById('masterNotifToggle');
+  if (masterToggle) masterToggle.checked = APP.alertSettings.enabled !== false;
+
   document.querySelectorAll('.reminder-toggle').forEach(t => {
     const meal = t.dataset.meal;
     t.checked = APP.alertSettings.reminders[meal] !== false;
@@ -1182,11 +1201,14 @@ async function enterApp(page) {
   updateModeBadge();
   updateLogoutVisibility();
 
-  // Sync from server if online
   if (isOnline()) {
     await syncFromServer();
     // Send any pending FCM token now that we have a JWT
     sendFcmTokenToServer();
+  }
+  
+  if (APP.alertSettings.enabled) {
+    scheduleMealReminders();
   }
   updateHomeUI();
 
@@ -1542,6 +1564,16 @@ function init() {
   document.getElementById('alertEnableBtn')?.addEventListener('click', async () => {
     await requestNotifPermission();
     updateAlertsUI();
+  });
+
+  // Master notification toggle
+  document.getElementById('masterNotifToggle')?.addEventListener('change', async (e) => {
+    APP.alertSettings.enabled = e.target.checked;
+    save();
+    if (isOnline()) {
+      await api('/alerts/settings', { method: 'PUT', body: JSON.stringify({ master_enabled: e.target.checked }) });
+    }
+    showToast(e.target.checked ? '🔔 Notifications enabled' : '🔕 Notifications disabled');
   });
 
   // Reminder toggles

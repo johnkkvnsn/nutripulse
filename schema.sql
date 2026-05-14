@@ -88,5 +88,6 @@ CREATE TABLE IF NOT EXISTS alert_settings (
     alert_over_budget  TINYINT(1) DEFAULT 1,
     alert_streak       TINYINT(1) DEFAULT 1,
     alert_weekly_report TINYINT(1) DEFAULT 1,
+    master_enabled     TINYINT(1) DEFAULT 1,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

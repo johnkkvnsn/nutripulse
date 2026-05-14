@@ -24,9 +24,17 @@ import firebase_admin
 from firebase_admin import credentials, messaging as fcm_messaging
 
 # ─── FIREBASE ADMIN INIT ────────────────────
-service_account_info = json.loads(os.environ["FIREBASE_SERVICE_ACCOUNT_JSON"])
-cred = credentials.Certificate(service_account_info)
-firebase_admin.initialize_app(cred)
+try:
+    if "FIREBASE_SERVICE_ACCOUNT_JSON" in os.environ:
+        service_account_info = json.loads(os.environ["FIREBASE_SERVICE_ACCOUNT_JSON"])
+        cred = credentials.Certificate(service_account_info)
+    else:
+        # Fallback to local file if environment variable is missing
+        cred = credentials.Certificate("firebase-service-account.json")
+    firebase_admin.initialize_app(cred)
+except Exception as e:
+    print(f"⚠️ Firebase Admin Init Warning: {e}")
+    print("Push notifications may not work correctly.")
 
 
 # ─── CONFIG ──────────────────────────────────
@@ -673,16 +681,17 @@ def get_alert_settings(current_user):
     return jsonify({
         'status': 'success',
         'settings': {
+            'enabled':       bool(s.get('master_enabled', 1)),
             'reminders': {
-                'breakfast': bool(s['reminder_breakfast']),
-                'lunch':     bool(s['reminder_lunch']),
-                'dinner':    bool(s['reminder_dinner']),
+                'breakfast': bool(s.get('reminder_breakfast', 1)),
+                'lunch':     bool(s.get('reminder_lunch', 1)),
+                'dinner':    bool(s.get('reminder_dinner', 1)),
             },
             'goalAlerts': {
-                'calorie-goal':  bool(s['alert_calorie_goal']),
-                'over-budget':   bool(s['alert_over_budget']),
-                'streak':        bool(s['alert_streak']),
-                'weekly-report': bool(s['alert_weekly_report']),
+                'calorie-goal':  bool(s.get('alert_calorie_goal', 1)),
+                'over-budget':   bool(s.get('alert_over_budget', 1)),
+                'streak':        bool(s.get('alert_streak', 1)),
+                'weekly-report': bool(s.get('alert_weekly_report', 1)),
             }
         }
     })
@@ -700,6 +709,7 @@ def update_alert_settings(current_user):
         'alert_over_budget':  data.get('alert_over_budget'),
         'alert_streak':       data.get('alert_streak'),
         'alert_weekly_report': data.get('alert_weekly_report'),
+        'master_enabled':     data.get('master_enabled'),
     }
     updates = {k: int(v) for k, v in col_map.items() if v is not None}
     if not updates:
@@ -814,6 +824,12 @@ def _add_notification(user_id, ntype, icon, title, body):
     _send_push(user_id, title, body)
 
 def _send_push(user_id, title, body):
+    # Only send if user has master_enabled = 1
+    settings = db_query('SELECT master_enabled FROM alert_settings WHERE user_id = %s', (user_id,), one=True)
+    if settings and not settings.get('master_enabled', 1):
+        print(f'[FCM] Skipping push for user {user_id} (master_enabled is off)')
+        return
+
     tokens = db_query(
         'SELECT token FROM fcm_tokens WHERE user_id = %s',
         (user_id,)
