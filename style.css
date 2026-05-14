@@ -645,7 +645,6 @@ body.light .mob-header {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 1200px;
 }
 
 .wd-hero {
@@ -2664,7 +2663,6 @@ body.light .mob-nav {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-width: 860px;
 }
 
 /* Permission Card */
@@ -2708,7 +2706,8 @@ body.light .mob-nav {
   padding: 18px 24px;
   display: flex;
   align-items: center;
-  justify-content: space-between; /* Space for toggle */
+  justify-content: space-between;
+  /* Space for toggle */
   gap: 16px;
   animation: fadeUp .4s cubic-bezier(.34, 1.56, .64, 1);
 }

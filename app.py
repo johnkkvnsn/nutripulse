@@ -12,6 +12,8 @@ from functools import wraps
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 import mysql.connector
+import threading
+import time
 import jwt
 import os
 import base64
@@ -837,19 +839,33 @@ def _send_push(user_id, title, body):
     for row in tokens:
         try:
             message = fcm_messaging.Message(
-                data={                          # ← data only, no notification key
+                notification=fcm_messaging.Notification(
+                    title=title,
+                    body=body,
+                ),
+                data={
                     'title': title,
                     'body':  body,
                     'icon':  '/icons/icon-192.png',
                     'url':   '/'
                 },
                 webpush=fcm_messaging.WebpushConfig(
-                    headers={'Urgency': 'high'}
+                    headers={'Urgency': 'high'},
+                    notification=fcm_messaging.WebpushNotification(
+                        icon='/icons/icon-192.png',
+                        badge='/icons/icon-192.png',
+                        actions=[
+                            fcm_messaging.WebpushNotificationAction(action='log', title='📝 Log Now'),
+                            fcm_messaging.WebpushNotificationAction(action='dismiss', title='Dismiss')
+                        ]
+                    )
                 ),
+
                 token=row['token'],
             )
             response = fcm_messaging.send(message)
             print(f'[FCM] Sent to user {user_id}: {response}')
+
         except Exception as e:
             print(f'[FCM] Failed: {e}')
             if 'not registered' in str(e).lower() or 'invalid' in str(e).lower():
@@ -872,6 +888,86 @@ def test_push(current_user):
         'status': 'success',
         'message': f'Push sent to user {current_user["id"]}'
     })
+
+
+# ═══════════════════════════════════════════
+#  BACKGROUND SCHEDULER
+# ═══════════════════════════════════════════
+def _reminder_scheduler():
+    """Background thread to send meal reminders via FCM."""
+    print("[Scheduler] Started meal reminder thread")
+    
+    # Simple state to avoid double-sending in the same minute
+    last_sent_minute = -1
+    
+    while True:
+        try:
+            now = datetime.now()
+            # Only check once per minute
+            if now.minute == last_sent_minute:
+                time.sleep(10)
+                continue
+            
+            last_sent_minute = now.minute
+            
+            # Reminder times (h, m, meal_key, title, body)
+            schedules = [
+                (8,  0,  'reminder_breakfast', '🌅 Breakfast Time', 'Time to log your breakfast!'),
+                (12, 30, 'reminder_lunch',     '☀️ Lunch Time',     'Don\'t forget to log your lunch.'),
+                (19, 0,  'reminder_dinner',    '🌙 Dinner Time',    'End your day right — log your dinner!'),
+            ]
+            
+            for h, m, key, title, body in schedules:
+                if now.hour == h and now.minute == m:
+                    print(f"[Scheduler] Sending {key} notifications...")
+                    
+                    # Create a new connection for the background thread
+                    # Since this is a simple script, we use a one-off conn or a dedicated one
+                    try:
+                        conn = mysql.connector.connect(**DB_CONFIG)
+                        cur = conn.cursor(dictionary=True)
+                        
+                        # Find users who have this reminder enabled
+                        cur.execute(f"SELECT user_id FROM alert_settings WHERE {key} = 1")
+                        users = cur.fetchall()
+                        
+                        for u in users:
+                            # Send via existing helper
+                            # Note: _send_push needs a user_id and tokens from DB
+                            # We can just call it directly since it does its own query
+                            # But wait, _send_push uses get_db() which uses g.db (request scoped)
+                            # We need a thread-safe version or just replicate the logic
+                            
+                            # Replicate minimal push logic for thread safety
+                            cur.execute("SELECT token FROM fcm_tokens WHERE user_id = %s", (u['user_id'],))
+                            tokens = cur.fetchall()
+                            for t in tokens:
+                                try:
+                                    msg = fcm_messaging.Message(
+                                        notification=fcm_messaging.Notification(title=title, body=body),
+                                        token=t['token']
+                                    )
+                                    fcm_messaging.send(msg)
+                                except Exception as e:
+                                    if 'not registered' in str(e).lower():
+                                        # Clean up old tokens (we'll do this in a separate pass or just ignore)
+                                        pass
+                        
+                        cur.close()
+                        conn.close()
+                    except Exception as e:
+                        print(f"[Scheduler] DB Error: {e}")
+            
+            # Sleep until next minute check
+            time.sleep(30)
+            
+        except Exception as e:
+            print(f"[Scheduler] Global Loop Error: {e}")
+            time.sleep(60)
+
+# Start scheduler thread
+daemon = threading.Thread(target=_reminder_scheduler, daemon=True)
+daemon.start()
 
 
 # ═══════════════════════════════════════════

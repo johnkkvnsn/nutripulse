@@ -864,7 +864,7 @@ async function requestNotifPermission() {
           console.log('[FCM] Token obtained:', token.substring(0, 20) + '...');
           pendingFcmToken = token;
           localStorage.setItem('np_fcm_token', token);
-          APP.alertSettings.enabled = true; // Set to true when enabling
+          APP.alertSettings.enabled = true;
           save();
           showToast('🔔 Push notifications enabled!');
 
@@ -874,15 +874,17 @@ async function requestNotifPermission() {
           // Handle foreground messages
           messaging.onMessage((payload) => {
             console.log('[FCM] Foreground message received:', payload);
-            const title = payload.notification?.title || 'NutriPulse';
-            const body = payload.notification?.body || 'You have a new notification';
-            new Notification(title, { body, icon: 'icons/icon-192.png' });
-            // Also add to in-app notification list
+            const title = payload.notification?.title || payload.data?.title || 'NutriPulse';
+            const body = payload.notification?.body || payload.data?.body || 'You have a new notification';
+            if (Notification.permission === 'granted') {
+              new Notification(title, { body, icon: 'icons/icon-192.png' });
+            }
             addNotification('goal', title, body, 'goal');
           });
+          
+          // Schedule local backups too
+          scheduleMealReminders();
           return;
-        } else {
-          console.warn('[FCM] getToken returned null — check VAPID key and Firebase config');
         }
       }
     } catch (e) {
@@ -955,21 +957,7 @@ async function updateAlertsUI() {
       save();
     }
   }
-  // Show permission or status card
-  const permCard = document.getElementById('alertPermCard');
-  const statusCard = document.getElementById('alertStatusCard');
-  if ('Notification' in window && Notification.permission === 'granted') {
-    permCard?.classList.add('hidden');
-    statusCard?.classList.remove('hidden');
-  } else {
-    permCard?.classList.remove('hidden');
-    statusCard?.classList.add('hidden');
-  }
-
-  // Restore toggle states
-  const masterToggle = document.getElementById('masterNotifToggle');
-  if (masterToggle) masterToggle.checked = APP.alertSettings.enabled !== false;
-
+  // Rest of the UI updates
   document.querySelectorAll('.reminder-toggle').forEach(t => {
     const meal = t.dataset.meal;
     t.checked = APP.alertSettings.reminders[meal] !== false;
@@ -1560,21 +1548,6 @@ function init() {
   // Topbar search
   document.getElementById('topbarSearch')?.addEventListener('input', handleTopbarSearch);
 
-  // Notifications — Enable button on alerts page
-  document.getElementById('alertEnableBtn')?.addEventListener('click', async () => {
-    await requestNotifPermission();
-    updateAlertsUI();
-  });
-
-  // Master notification toggle
-  document.getElementById('masterNotifToggle')?.addEventListener('change', async (e) => {
-    APP.alertSettings.enabled = e.target.checked;
-    save();
-    if (isOnline()) {
-      await api('/alerts/settings', { method: 'PUT', body: JSON.stringify({ master_enabled: e.target.checked }) });
-    }
-    showToast(e.target.checked ? '🔔 Notifications enabled' : '🔕 Notifications disabled');
-  });
 
   // Reminder toggles
   document.querySelectorAll('.reminder-toggle').forEach(t => {
@@ -1632,8 +1605,13 @@ function init() {
   // Service Worker MUST be registered BEFORE requesting FCM tokens
   registerSW();
 
-  // Request notifications after SW has had time to register
-  setTimeout(requestNotifPermission, 4000);
+  // If permission already granted, set up without asking (gestures not required)
+  if ('Notification' in window && Notification.permission === 'granted') {
+    setTimeout(requestNotifPermission, 2000);
+  } else {
+    // Check again later if they enable it via the UI
+    console.log('[Init] Notification permission not granted yet');
+  }
 }
 
 async function logWeight(val, historyId, inputId) {

@@ -19,16 +19,24 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log('[SW] Background message received:', payload);
-  const title = payload.data?.title || 'NutriPulse';  // ← payload.data not payload.notification
+  const title = payload.data?.title || 'NutriPulse';
   const options = {
     body: payload.data?.body || '',
     icon: payload.data?.icon || './icons/icon-192.png',
-    data: { url: payload.data?.url || './' }
+    badge: './icons/icon-192.png',
+    tag: 'nutripulse-notification',
+    renotify: true,
+    data: { url: payload.data?.url || './' },
+    actions: [
+      { action: 'log', title: '📝 Log Now' },
+      { action: 'dismiss', title: 'Dismiss' }
+    ]
   };
-  self.registration.showNotification(title, options);
+  return self.registration.showNotification(title, options);
 });
 
-const CACHE_NAME = 'nutripulse-v2.0';
+
+const CACHE_NAME = 'nutripulse-v2.1';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -141,32 +149,26 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// ─── PUSH NOTIFICATIONS ──────────────────
-self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {};
-  const title = data.title || 'NutriPulse';
-  const options = {
-    body: data.body || 'Time to log your meal!',
-    icon: './icons/icon-192.png',
-    badge: './icons/icon-192.png',
-    tag: 'nutripulse-reminder',
-    renotify: true,
-    data: { url: data.url || './' },
-    actions: [
-      { action: 'log', title: '📝 Log Now' },
-      { action: 'dismiss', title: 'Dismiss' }
-    ]
-  };
-  event.waitUntil(self.registration.showNotification(title, options));
-});
-
 // ─── NOTIFICATION CLICK ──────────────────
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  if (event.action === 'log') {
-    event.waitUntil(clients.openWindow('./index.html'));
-  }
+  const urlToOpen = event.notification.data?.url || './index.html';
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i];
+        if (client.url.includes('index.html') && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
 });
+
 
 // ─── BACKGROUND SYNC (for offline log queuing) ──
 self.addEventListener('sync', (event) => {
