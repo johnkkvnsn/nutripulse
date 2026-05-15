@@ -934,21 +934,7 @@ def _send_push(user_id, title, body):
         print(f'[FCM] Database error in _send_push: {e}')
 
 
-# ═══════════════════════════════════════════
-#  TEST PUSH (dev only — remove in production)
-# ═══════════════════════════════════════════
-@app.route('/api/v1/test-push', methods=['POST'])
-@token_required
-def test_push(current_user):
-    """Send a test push notification to the current user."""
-    data = request.get_json(silent=True) or {}
-    title = data.get('title', '🔔 Test Push from NutriPulse')
-    body  = data.get('body', 'If you see this, push notifications are working!')
-    _add_notification(current_user['id'], 'goal', '🎯', title, body)
-    return jsonify({
-        'status': 'success',
-        'message': f'Push sent to user {current_user["id"]}'
-    })
+# TEST PUSH removed for production
 
 
 # ═══════════════════════════════════════════
@@ -1017,4 +1003,5 @@ daemon.start()
 #  STARTUP
 # ═══════════════════════════════════════════
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # Set debug=False for production
+    app.run(debug=False, port=5000, host='0.0.0.0')

@@ -924,22 +924,7 @@ async function requestNotifPermission() {
   }
 }
 
-function updatePushStatus(status) {
-  const el = document.getElementById('pushStatus');
-  if (!el) return;
-  el.textContent = 'Status: ' + status;
-  
-  const enableBtn = document.getElementById('enablePushBtn');
-  const testBtn = document.getElementById('testPushBtn');
-  
-  if (status === 'Active') {
-    enableBtn?.classList.add('hidden');
-    testBtn?.classList.remove('hidden');
-  } else {
-    enableBtn?.classList.remove('hidden');
-    testBtn?.classList.add('hidden');
-  }
-}
+// updatePushStatus removed as manual UI is deleted
 
 function sendFcmTokenToServer() {
   const token = pendingFcmToken || localStorage.getItem('np_fcm_token');
@@ -992,14 +977,6 @@ function scheduleMealReminders() {
 
 // ─── ALERTS PAGE LOGIC ───────────────────
 async function updateAlertsUI() {
-  // Update Push Status
-  if (!('Notification' in window)) updatePushStatus('Unsupported');
-  else if (Notification.permission === 'granted') {
-    if (localStorage.getItem('np_fcm_token')) updatePushStatus('Active');
-    else updatePushStatus('Permission Granted');
-  } else if (Notification.permission === 'denied') updatePushStatus('Denied');
-  else updatePushStatus('Not Enabled');
-
   // Sync settings from server if online
   if (isOnline()) {
     const res = await api('/alerts/settings');
@@ -1628,17 +1605,7 @@ function init() {
   });
 
   // Push setup
-  document.getElementById('enablePushBtn')?.addEventListener('click', requestNotifPermission);
-  document.getElementById('testPushBtn')?.addEventListener('click', async () => {
-    if (!isOnline()) {
-      showToast('⚠️ Online mode required for test alerts');
-      return;
-    }
-    showToast('⏳ Sending test alert...');
-    const res = await api('/test-push', { method: 'POST' });
-    if (res.status === 'success') showToast('🚀 Test alert sent!');
-    else showToast('❌ Failed to send: ' + (res.message || 'Error'));
-  });
+  // Push setup listener removed (UI deleted)
 
   // Clear all notifications
   document.getElementById('clearAlertsBtn')?.addEventListener('click', clearAllNotifications);
