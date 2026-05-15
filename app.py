@@ -210,6 +210,18 @@ def api_register():
     if not username or not email or not password:
         return jsonify({'status': 'error', 'message': 'All fields required'}), 400
 
+    # Password strength validation
+    # 8+ chars, upper, lower, digit, special
+    if len(password) < 8:
+        return jsonify({'status': 'error', 'message': 'Password must be at least 8 characters long'}), 400
+    
+    if not re.search(r"[a-z]", password) or not re.search(r"[A-Z]", password) or \
+       not re.search(r"\d", password) or not re.search(r"[^A-Za-z0-9]", password):
+        return jsonify({
+            'status': 'error', 
+            'message': 'Password must contain uppercase, lowercase, numbers, and special characters'
+        }), 400
+
     existing = db_query('SELECT id FROM users WHERE username = %s', (username,), one=True)
     if existing:
         return jsonify({'status': 'error', 'message': 'Username already exists'}), 409
@@ -231,6 +243,44 @@ def api_register():
         'token': token,
         'user': {'id': user_id, 'username': username}
     }), 201
+
+
+@app.route('/api/v1/auth/change-password', methods=['POST'])
+@token_required
+def change_password(current_user):
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'status': 'error', 'message': 'Invalid JSON'}), 400
+
+    old_password = data.get('old_password')
+    new_password = data.get('new_password')
+
+    if not old_password or not new_password:
+        return jsonify({'status': 'error', 'message': 'Both old and new passwords required'}), 400
+
+    # Verify old password
+    if not check_password_hash(current_user['password_hash'], old_password):
+        return jsonify({'status': 'error', 'message': 'Current password is incorrect'}), 401
+
+    # Validate new password strength
+    if len(new_password) < 8:
+        return jsonify({'status': 'error', 'message': 'New password must be at least 8 characters long'}), 400
+    
+    if not re.search(r"[a-z]", new_password) or not re.search(r"[A-Z]", new_password) or \
+       not re.search(r"\d", new_password) or not re.search(r"[^A-Za-z0-9]", new_password):
+        return jsonify({
+            'status': 'error', 
+            'message': 'New password must contain uppercase, lowercase, numbers, and special characters'
+        }), 400
+
+    # Update password
+    new_pw_hash = generate_password_hash(new_password)
+    db_query(
+        'UPDATE users SET password_hash = %s WHERE id = %s',
+        (new_pw_hash, current_user['id']), commit=True
+    )
+
+    return jsonify({'status': 'success', 'message': 'Password updated successfully'})
 
 
 # ═══════════════════════════════════════════
@@ -1004,4 +1054,4 @@ daemon.start()
 # ═══════════════════════════════════════════
 if __name__ == '__main__':
     # Set debug=False for production
-    app.run(debug=False, port=5000, host='0.0.0.0')
+    app.run(debug=False, port=5000, host='127.0.0.1')

@@ -92,6 +92,39 @@ body {
   display: none !important;
 }
 
+.af-input-wrap {
+  position: relative;
+}
+
+.af-visibility-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text3);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition);
+  z-index: 5;
+  cursor: pointer;
+}
+
+.af-visibility-toggle:hover {
+  color: var(--text2);
+}
+
+.af-visibility-toggle.active {
+  color: var(--accent);
+}
+
+.af-input {
+  padding-right: 44px !important;
+}
+
 button {
   cursor: pointer;
   font-family: inherit;
@@ -3678,4 +3711,10 @@ body.light .mob-nav {
     animation-duration: .01ms !important;
     transition-duration: .01ms !important;
   }
+}
+.af-hint {
+  font-size: .72rem;
+  color: var(--text3);
+  margin-top: 5px;
+  font-weight: 500;
 }

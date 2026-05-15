@@ -396,6 +396,14 @@ function updateProfileUI() {
   } else {
     showProfileEdit(true); // true = mandatory setup (no cancel)
   }
+
+  // Security section is only for online users
+  const securitySec = document.getElementById('securitySection');
+  if (securitySec) {
+    securitySec.classList.toggle('hidden', APP.mode !== 'online');
+    // Hide the form wrapper by default when loading profile
+    document.getElementById('changePasswordWrapper')?.classList.add('hidden');
+  }
 }
 
 function showProfileView() {
@@ -1268,6 +1276,20 @@ async function handleLogin(username, password) {
 async function handleRegister(username, email, password) {
   const errEl = document.getElementById('regError');
   errEl.classList.add('hidden');
+
+  // Password validation
+  const minLength = 8;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNum = /\d/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
+  if (password.length < minLength || !hasUpper || !hasLower || !hasNum || !hasSpecial) {
+    errEl.textContent = 'Password must be 8+ characters and contain uppercase, lowercase, numbers, and special characters.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
   try {
     const data = await api('/auth/register', {
       method: 'POST',
@@ -1289,6 +1311,53 @@ async function handleRegister(username, email, password) {
   } catch (e) {
     errEl.textContent = 'Cannot reach server. Check your connection or try Offline Mode.';
     errEl.classList.remove('hidden');
+  }
+}
+
+async function handleChangePassword() {
+  const oldPw = document.getElementById('oldPassword').value;
+  const newPw = document.getElementById('newPassword').value;
+  const btn = document.getElementById('changePasswordBtn');
+
+  if (!oldPw || !newPw) {
+    showToast('⚠️ Both passwords are required');
+    return;
+  }
+
+  // Frontend complexity check for new password
+  const minLength = 8;
+  const hasUpper = /[A-Z]/.test(newPw);
+  const hasLower = /[a-z]/.test(newPw);
+  const hasNum = /\d/.test(newPw);
+  const hasSpecial = /[^A-Za-z0-9]/.test(newPw);
+
+  if (newPw.length < minLength || !hasUpper || !hasLower || !hasNum || !hasSpecial) {
+    showToast('⚠️ New password is too weak. Check requirements.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+
+  try {
+    const data = await api('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ old_password: oldPw, new_password: newPw })
+    });
+
+    if (data.status === 'success') {
+      showToast('✅ Password updated successfully!');
+      setVal('oldPassword', '');
+      setVal('newPassword', '');
+      document.getElementById('changePasswordWrapper')?.classList.add('hidden');
+    } else {
+      showToast('❌ ' + (data.message || 'Failed to update password'));
+    }
+  } catch (e) {
+    showToast('❌ Server error. Try again later.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Update Password';
   }
 }
 
@@ -1610,6 +1679,12 @@ function init() {
   // Clear all notifications
   document.getElementById('clearAlertsBtn')?.addEventListener('click', clearAllNotifications);
 
+  // Change Password
+  document.getElementById('changePasswordBtn')?.addEventListener('click', handleChangePassword);
+  document.getElementById('togglePasswordFormBtn')?.addEventListener('click', () => {
+    document.getElementById('changePasswordWrapper')?.classList.toggle('hidden');
+  });
+
   // Dismiss individual notification (delegated)
   document.getElementById('notifHistory')?.addEventListener('click', e => {
     const btn = e.target.closest('.ni-dismiss');
@@ -1631,6 +1706,36 @@ function init() {
   });
   document.getElementById('installDismiss')?.addEventListener('click', () => {
     document.getElementById('installBanner')?.classList.add('hidden');
+  });
+
+  // Password Visibility Toggle
+  document.querySelectorAll('.af-visibility-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.target;
+      const input = document.getElementById(targetId);
+      if (!input) return;
+
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      btn.classList.toggle('active', !isPassword);
+
+      // Update SVG to show/hide eye with a line
+      if (!isPassword) {
+        btn.innerHTML = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+            <line x1="1" y1="1" x2="23" y2="23" />
+          </svg>
+        `;
+      } else {
+        btn.innerHTML = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        `;
+      }
+    });
   });
 
   // Service Worker MUST be registered BEFORE requesting FCM tokens
