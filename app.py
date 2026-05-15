@@ -842,78 +842,91 @@ def _send_push(user_id, title, body):
         cur.execute('SELECT token FROM fcm_tokens WHERE user_id = %s', (user_id,))
         tokens = cur.fetchall()
         
+        messages = []
         for row in tokens:
-            try:
-                # 1. Webpush configuration (Critical for PWAs on PC/Android/iOS Safari)
-                webpush_config = fcm_messaging.WebpushConfig(
-                    headers={'Urgency': 'high'},
-                    notification=fcm_messaging.WebpushNotification(
-                        title=title,
-                        body=body,
-                        icon='/icons/icon-192.png',
-                        badge='/icons/icon-192.png',
-                        tag='nutripulse-alert',
-                        renotify=True,
-                        actions=[
-                            fcm_messaging.WebpushNotificationAction(action='log', title='📝 Log Now'),
-                            fcm_messaging.WebpushNotificationAction(action='dismiss', title='Dismiss')
-                        ]
-                    )
+            # 1. Webpush configuration (Critical for PWAs on PC/Android/iOS Safari)
+            webpush_config = fcm_messaging.WebpushConfig(
+                headers={'Urgency': 'high'},
+                notification=fcm_messaging.WebpushNotification(
+                    title=title,
+                    body=body,
+                    icon='/icons/icon-192.png',
+                    badge='/icons/icon-192.png',
+                    tag='nutripulse-alert',
+                    renotify=True,
+                    actions=[
+                        fcm_messaging.WebpushNotificationAction(action='log', title='📝 Log Now'),
+                        fcm_messaging.WebpushNotificationAction(action='dismiss', title='Dismiss')
+                    ]
                 )
+            )
 
-                # 2. Android Config (Helps with priority and system-level handling)
-                android_config = fcm_messaging.AndroidConfig(
-                    priority='high',
-                    notification=fcm_messaging.AndroidNotification(
-                        title=title,
-                        body=body,
-                        icon='stock_ticker_update',
-                        color='#10B981',
+            # 2. Android Config (Helps with priority and system-level handling)
+            android_config = fcm_messaging.AndroidConfig(
+                priority='high',
+                notification=fcm_messaging.AndroidNotification(
+                    title=title,
+                    body=body,
+                    icon='stock_ticker_update',
+                    color='#10B981',
+                    sound='default',
+                    tag='nutripulse-alert',
+                    click_action='OPEN_APP'
+                )
+            )
+
+            # 3. APNS Config (Crucial for iOS Safari PWA push)
+            apns_config = fcm_messaging.APNSConfig(
+                headers={'apns-priority': '10'},
+                payload=fcm_messaging.APNSPayload(
+                    aps=fcm_messaging.Aps(
+                        alert=fcm_messaging.ApsAlert(title=title, body=body),
                         sound='default',
-                        tag='nutripulse-alert',
-                        click_action='OPEN_APP'
+                        badge=1,
+                        mutable_content=True,
+                        content_available=True
                     )
                 )
+            )
 
-                # 3. APNS Config (Crucial for iOS Safari PWA push)
-                apns_config = fcm_messaging.APNSConfig(
-                    headers={'apns-priority': '10'},
-                    payload=fcm_messaging.APNSPayload(
-                        aps=fcm_messaging.Aps(
-                            alert=fcm_messaging.ApsAlert(title=title, body=body),
-                            sound='default',
-                            badge=1,
-                            mutable_content=True,
-                            content_available=True
-                        )
-                    )
-                )
+            # 4. Final Message Assembly
+            messages.append(fcm_messaging.Message(
+                notification=fcm_messaging.Notification(title=title, body=body),
+                data={
+                    'title': title,
+                    'body':  body,
+                    'url':   '/',
+                    'icon':  '/icons/icon-192.png'
+                },
+                webpush=webpush_config,
+                android=android_config,
+                apns=apns_config,
+                token=row['token'],
+            ))
 
-                # 4. Final Message Assembly
-                message = fcm_messaging.Message(
-                    notification=fcm_messaging.Notification(
-                        title=title,
-                        body=body,
-                    ),
-                    data={
-                        'title': title,
-                        'body':  body,
-                        'url':   '/',
-                        'icon':  '/icons/icon-192.png'
-                    },
-                    webpush=webpush_config,
-                    android=android_config,
-                    apns=apns_config,
-                    token=row['token'],
-                )
-                response = fcm_messaging.send(message)
-                print(f'[FCM] Sent to user {user_id}: {response}')
-
-            except Exception as e:
-                print(f'[FCM] Failed for token {row["token"][:10]}...: {e}')
-                if 'not registered' in str(e).lower() or 'invalid' in str(e).lower():
-                    cur.execute('DELETE FROM fcm_tokens WHERE token = %s', (row['token'],))
-                    conn.commit()
+        if messages:
+            try:
+                # Use send_each for simultaneous delivery to all devices
+                batch_response = fcm_messaging.send_each(messages)
+                print(f'[FCM] Sent {batch_response.success_count}/{len(messages)} messages for user {user_id}')
+                
+                # Cleanup invalid tokens
+                for idx, resp in enumerate(batch_response.responses):
+                    if not resp.success:
+                        err = str(resp.exception)
+                        if 'not registered' in err.lower() or 'invalid' in err.lower():
+                            invalid_token = messages[idx].token
+                            cur.execute('DELETE FROM fcm_tokens WHERE token = %s', (invalid_token,))
+                            conn.commit()
+                            print(f'[FCM] Removed invalid token: {invalid_token[:20]}...')
+            except Exception as batch_err:
+                print(f'[FCM] Batch send failed: {batch_err}')
+                # Fallback to individual sends if send_each is not supported (<6.2.0)
+                for msg in messages:
+                    try:
+                        fcm_messaging.send(msg)
+                    except Exception:
+                        pass
         
         cur.close()
         conn.close()
