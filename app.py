@@ -827,50 +827,66 @@ def _add_notification(user_id, ntype, icon, title, body):
 
 def _send_push(user_id, title, body):
     # Only send if user has master_enabled = 1
-    settings = db_query('SELECT master_enabled FROM alert_settings WHERE user_id = %s', (user_id,), one=True)
-    if settings and not settings.get('master_enabled', 1):
-        print(f'[FCM] Skipping push for user {user_id} (master_enabled is off)')
-        return
+    # We query the DB directly here to be thread-safe if called from scheduler
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cur = conn.cursor(dictionary=True)
+        
+        cur.execute('SELECT master_enabled FROM alert_settings WHERE user_id = %s', (user_id,))
+        settings = cur.fetchone()
+        if settings and not settings.get('master_enabled', 1):
+            cur.close()
+            conn.close()
+            return
 
-    tokens = db_query(
-        'SELECT token FROM fcm_tokens WHERE user_id = %s',
-        (user_id,)
-    )
-    for row in tokens:
-        try:
-            message = fcm_messaging.Message(
-                notification=fcm_messaging.Notification(
-                    title=title,
-                    body=body,
-                ),
-                data={
-                    'title': title,
-                    'body':  body,
-                    'icon':  '/icons/icon-192.png',
-                    'url':   '/'
-                },
-                webpush=fcm_messaging.WebpushConfig(
+        cur.execute('SELECT token FROM fcm_tokens WHERE user_id = %s', (user_id,))
+        tokens = cur.fetchall()
+        
+        for row in tokens:
+            try:
+                # Webpush configuration is critical for PWAs on iOS/Android
+                webpush_config = fcm_messaging.WebpushConfig(
                     headers={'Urgency': 'high'},
                     notification=fcm_messaging.WebpushNotification(
+                        title=title,
+                        body=body,
                         icon='/icons/icon-192.png',
                         badge='/icons/icon-192.png',
+                        tag='nutripulse-alert',
+                        renotify=True,
                         actions=[
                             fcm_messaging.WebpushNotificationAction(action='log', title='📝 Log Now'),
                             fcm_messaging.WebpushNotificationAction(action='dismiss', title='Dismiss')
                         ]
                     )
-                ),
+                )
 
-                token=row['token'],
-            )
-            response = fcm_messaging.send(message)
-            print(f'[FCM] Sent to user {user_id}: {response}')
+                message = fcm_messaging.Message(
+                    notification=fcm_messaging.Notification(
+                        title=title,
+                        body=body,
+                    ),
+                    data={
+                        'title': title,
+                        'body':  body,
+                        'url':   '/'
+                    },
+                    webpush=webpush_config,
+                    token=row['token'],
+                )
+                response = fcm_messaging.send(message)
+                print(f'[FCM] Sent to user {user_id}: {response}')
 
-        except Exception as e:
-            print(f'[FCM] Failed: {e}')
-            if 'not registered' in str(e).lower() or 'invalid' in str(e).lower():
-                db_query('DELETE FROM fcm_tokens WHERE token = %s',
-                         (row['token'],), commit=True)
+            except Exception as e:
+                print(f'[FCM] Failed for token {row["token"][:10]}...: {e}')
+                if 'not registered' in str(e).lower() or 'invalid' in str(e).lower():
+                    cur.execute('DELETE FROM fcm_tokens WHERE token = %s', (row['token'],))
+                    conn.commit()
+        
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f'[FCM] Database error in _send_push: {e}')
 
 
 # ═══════════════════════════════════════════
@@ -932,26 +948,8 @@ def _reminder_scheduler():
                         users = cur.fetchall()
                         
                         for u in users:
-                            # Send via existing helper
-                            # Note: _send_push needs a user_id and tokens from DB
-                            # We can just call it directly since it does its own query
-                            # But wait, _send_push uses get_db() which uses g.db (request scoped)
-                            # We need a thread-safe version or just replicate the logic
-                            
-                            # Replicate minimal push logic for thread safety
-                            cur.execute("SELECT token FROM fcm_tokens WHERE user_id = %s", (u['user_id'],))
-                            tokens = cur.fetchall()
-                            for t in tokens:
-                                try:
-                                    msg = fcm_messaging.Message(
-                                        notification=fcm_messaging.Notification(title=title, body=body),
-                                        token=t['token']
-                                    )
-                                    fcm_messaging.send(msg)
-                                except Exception as e:
-                                    if 'not registered' in str(e).lower():
-                                        # Clean up old tokens (we'll do this in a separate pass or just ignore)
-                                        pass
+                            # Use the centralized helper which is now thread-safe
+                            _send_push(u['user_id'], title, body)
                         
                         cur.close()
                         conn.close()

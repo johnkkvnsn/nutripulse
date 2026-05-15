@@ -3039,6 +3039,71 @@ body.light .mob-nav {
   color: var(--red);
 }
 
+/* Push Setup Card */
+.push-setup-card {
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 8px;
+}
+
+.psc-info {
+  flex: 1;
+}
+
+.psc-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.psc-desc {
+  font-size: .85rem;
+  color: var(--text2);
+  line-height: 1.4;
+  max-width: 400px;
+}
+
+.psc-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 180px;
+}
+
+.psc-actions .btn-cta, 
+.psc-actions .btn-outline {
+  margin-top: 0;
+  width: 100%;
+  justify-content: center;
+}
+
+.psc-status {
+  font-size: .75rem;
+  color: var(--text3);
+  margin-top: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+@media (max-width: 600px) {
+  .push-setup-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px 16px;
+  }
+  .psc-actions {
+    width: 100%;
+  }
+}
+
+
 /* ══════════════════════════════════════
    RESPONSIVE — BREAKPOINTS
    Order: largest → smallest

@@ -841,60 +841,91 @@ let pendingFcmToken = null;
 async function requestNotifPermission() {
   if (!('Notification' in window)) {
     console.warn('[FCM] Notification API not supported');
+    updatePushStatus('Unsupported');
     return;
   }
-  const perm = await Notification.requestPermission();
-  console.log('[FCM] Permission result:', perm);
-  if (perm === 'granted') {
-    try {
+
+  updatePushStatus('Requesting...');
+  
+  try {
+    const perm = await Notification.requestPermission();
+    console.log('[FCM] Permission result:', perm);
+    
+    if (perm === 'granted') {
       // Wait for service worker registration to complete
       if (swReady) await swReady;
+      
       if (!swRegistration) {
-        console.warn('[FCM] No service worker registration available, falling back');
-        throw new Error('No SW registration');
+        console.warn('[FCM] No service worker registration available');
+        updatePushStatus('SW Error');
+        return;
       }
+
       if (typeof firebase !== 'undefined' && firebase.messaging) {
         const messaging = firebase.messaging();
         console.log('[FCM] Requesting FCM token...');
+        
         const token = await messaging.getToken({
           serviceWorkerRegistration: swRegistration,
           vapidKey: 'BKmk9Dsa89PuOx9Tj0aGNBxIjG4BeZFNQC9-YQjmXWK4RsFxtmnw0FzNa-NlpbA_uZ6XKmpDRN5RY0ofHl1fua4'
         });
+
         if (token) {
-          console.log('[FCM] Token obtained:', token.substring(0, 20) + '...');
+          console.log('[FCM] Token obtained');
           pendingFcmToken = token;
           localStorage.setItem('np_fcm_token', token);
           APP.alertSettings.enabled = true;
           save();
           showToast('🔔 Push notifications enabled!');
+          updatePushStatus('Active');
 
           // Send to server if user is authenticated
           sendFcmTokenToServer();
 
           // Handle foreground messages
           messaging.onMessage((payload) => {
-            console.log('[FCM] Foreground message received:', payload);
+            console.log('[FCM] Foreground message:', payload);
             const title = payload.notification?.title || payload.data?.title || 'NutriPulse';
-            const body = payload.notification?.body || payload.data?.body || 'You have a new notification';
+            const body = payload.notification?.body || payload.data?.body || '';
             if (Notification.permission === 'granted') {
               new Notification(title, { body, icon: 'icons/icon-192.png' });
             }
             addNotification('goal', title, body, 'goal');
           });
           
-          // Schedule local backups too
           scheduleMealReminders();
-          return;
+        } else {
+          updatePushStatus('No Token');
         }
       }
-    } catch (e) {
-      console.warn('[FCM] FCM setup failed, falling back to local reminders:', e);
+    } else {
+      updatePushStatus('Denied');
+      showToast('⚠️ Notifications denied. Enable them in settings.');
     }
+  } catch (e) {
+    console.warn('[FCM] Setup failed:', e);
+    updatePushStatus('Failed');
     // Fallback to local
     APP.alertSettings.enabled = true;
     save();
-    showToast('🔔 Local meal reminders enabled!');
     scheduleMealReminders();
+  }
+}
+
+function updatePushStatus(status) {
+  const el = document.getElementById('pushStatus');
+  if (!el) return;
+  el.textContent = 'Status: ' + status;
+  
+  const enableBtn = document.getElementById('enablePushBtn');
+  const testBtn = document.getElementById('testPushBtn');
+  
+  if (status === 'Active') {
+    enableBtn?.classList.add('hidden');
+    testBtn?.classList.remove('hidden');
+  } else {
+    enableBtn?.classList.remove('hidden');
+    testBtn?.classList.add('hidden');
   }
 }
 
@@ -949,6 +980,14 @@ function scheduleMealReminders() {
 
 // ─── ALERTS PAGE LOGIC ───────────────────
 async function updateAlertsUI() {
+  // Update Push Status
+  if (!('Notification' in window)) updatePushStatus('Unsupported');
+  else if (Notification.permission === 'granted') {
+    if (localStorage.getItem('np_fcm_token')) updatePushStatus('Active');
+    else updatePushStatus('Permission Granted');
+  } else if (Notification.permission === 'denied') updatePushStatus('Denied');
+  else updatePushStatus('Not Enabled');
+
   // Sync settings from server if online
   if (isOnline()) {
     const res = await api('/alerts/settings');
@@ -1576,6 +1615,19 @@ function init() {
     });
   });
 
+  // Push setup
+  document.getElementById('enablePushBtn')?.addEventListener('click', requestNotifPermission);
+  document.getElementById('testPushBtn')?.addEventListener('click', async () => {
+    if (!isOnline()) {
+      showToast('⚠️ Online mode required for test alerts');
+      return;
+    }
+    showToast('⏳ Sending test alert...');
+    const res = await api('/test-push', { method: 'POST' });
+    if (res.status === 'success') showToast('🚀 Test alert sent!');
+    else showToast('❌ Failed to send: ' + (res.message || 'Error'));
+  });
+
   // Clear all notifications
   document.getElementById('clearAlertsBtn')?.addEventListener('click', clearAllNotifications);
 
@@ -1605,12 +1657,11 @@ function init() {
   // Service Worker MUST be registered BEFORE requesting FCM tokens
   registerSW();
 
-  // If permission already granted, set up without asking (gestures not required)
+  // On mobile/iOS, we only request permission via user gesture (the button we added).
+  // But if already granted, we can refresh the token silently.
   if ('Notification' in window && Notification.permission === 'granted') {
-    setTimeout(requestNotifPermission, 2000);
-  } else {
-    // Check again later if they enable it via the UI
-    console.log('[Init] Notification permission not granted yet');
+    // Delay slightly to ensure SW is ready
+    setTimeout(requestNotifPermission, 1500);
   }
 }
 

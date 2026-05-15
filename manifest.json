@@ -1,6 +1,7 @@
 {
   "name": "NutriPulse – Calorie Tracker",
   "short_name": "NutriPulse",
+  "gcm_sender_id": "103953800507",
   "description": "Your intelligent daily calorie and wellness companion",
   "start_url": "./index.html",
   "display": "standalone",
