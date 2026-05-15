@@ -568,7 +568,50 @@ function updateProgressUI() {
   setText('atDi', Math.round(mealTotals.dinner / cnt)); setText('atDiP', Math.round(mealTotals.dinner / totalAvg * 100) + '%');
   setText('atSn', Math.round(mealTotals.snacks / cnt)); setText('atSnP', Math.round(mealTotals.snacks / totalAvg * 100) + '%');
 
+  updateAIForecast();
   buildCharts(labels, calData, goal, wKeys, wVals, mealTotals);
+}
+
+async function updateAIForecast() {
+  const card = document.getElementById('forecastCard');
+  const msg = document.getElementById('forecastMsg');
+  const container = document.getElementById('forecastPredictions');
+  
+  if (!card || !isOnline()) return;
+
+  try {
+    const data = await api('/predict-weight');
+    if (data.error) {
+      card.classList.add('hidden');
+      return;
+    }
+
+    card.classList.remove('hidden');
+    
+    const diff = data.calorie_surplus;
+    const absDiff = Math.abs(Math.round(diff));
+    let advice = "";
+    
+    if (diff > 100) {
+      advice = `You are currently in a surplus of **${absDiff} kcal/day**. Our AI predicts a steady weight gain trajectory.`;
+    } else if (diff < -100) {
+      advice = `You are maintaining a deficit of **${absDiff} kcal/day**. Excellent! Our AI projects consistent weight loss.`;
+    } else {
+      advice = `You are eating very close to your maintenance level. Your weight is predicted to remain stable.`;
+    }
+    
+    msg.innerHTML = advice;
+    
+    container.innerHTML = data.predictions.map(p => `
+      <div class="fcm-item">
+        <div class="fcm-val">${p.predicted_weight_kg} <small>kg</small></div>
+        <div class="fcm-lbl">In ${p.days} Days</div>
+      </div>
+    `).join('');
+
+  } catch (e) {
+    card.classList.add('hidden');
+  }
 }
 
 function buildCharts(labels, calData, goal, wKeys, wVals, mealTotals) {

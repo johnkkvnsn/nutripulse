@@ -6,6 +6,7 @@
 """
 
 from flask import Flask, request, jsonify, send_from_directory, g
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
@@ -21,9 +22,23 @@ import tempfile
 import uuid
 import json
 import re
+from cryptography.fernet import Fernet
 from inference_sdk import InferenceHTTPClient
 import firebase_admin
 from firebase_admin import credentials, messaging as fcm_messaging
+import pickle
+import numpy as np
+
+# ─── ML MODEL LOADING ───────────────────────
+try:
+    with open('models/weight_model.pkl', 'rb') as f:
+        weight_model = pickle.load(f)
+    with open('models/weight_scaler.pkl', 'rb') as f:
+        weight_scaler = pickle.load(f)
+except Exception as e:
+    print(f"⚠️ ML Model Load Warning: {e}")
+    weight_model = None
+    weight_scaler = None
 
 # ─── FIREBASE ADMIN INIT ────────────────────
 try:
@@ -55,6 +70,42 @@ DB_CONFIG = {
     'charset':  'utf8mb4',
     'autocommit': False,
 }
+
+# ─── ENCRYPTION (Data at Rest — AES-256 via Fernet) ─────
+ENCRYPTION_KEY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'encryption.key')
+
+def _load_or_generate_key():
+    """Load encryption key from file, or generate a new one on first run."""
+    if os.path.exists(ENCRYPTION_KEY_FILE):
+        with open(ENCRYPTION_KEY_FILE, 'rb') as f:
+            return f.read().strip()
+    key = Fernet.generate_key()
+    with open(ENCRYPTION_KEY_FILE, 'wb') as f:
+        f.write(key)
+    print("🔐 Generated new encryption key → encryption.key")
+    return key
+
+FERNET_KEY = _load_or_generate_key()
+cipher = Fernet(FERNET_KEY)
+
+
+def encrypt_field(value):
+    """Encrypt a string field for storage.  Returns str or None."""
+    if value is None:
+        return None
+    return cipher.encrypt(str(value).encode('utf-8')).decode('utf-8')
+
+
+def decrypt_field(value):
+    """Decrypt a stored field.  Gracefully returns the original value
+    if it was never encrypted (migration-safe)."""
+    if value is None:
+        return None
+    try:
+        return cipher.decrypt(value.encode('utf-8')).decode('utf-8')
+    except Exception:
+        # Value was stored before encryption was enabled — return as-is
+        return value
 
 
 # ─── DATABASE HELPERS ────────────────────────
@@ -138,8 +189,8 @@ def index():
 
 @app.route('/<path:path>')
 def static_files(path):
-    # Do not serve python files, sql or db
-    blocked = ('.py', '.db', '.sql', '.php', '.env')
+    # Do not serve python files, sql, db, or key files
+    blocked = ('.py', '.db', '.sql', '.php', '.env', '.key')
     if any(path.endswith(ext) for ext in blocked):
         return "Access denied", 403
     if os.path.exists(path):
@@ -192,8 +243,86 @@ def api_login():
         'user': {
             'id': user['id'],
             'username': user['username'],
-            'name': user['name'],
+            'name': decrypt_field(user['name']),
         }
+    })
+
+
+def calculate_bmr(weight_kg, height_cm, age, gender):
+    if gender == 'male':
+        return 10 * weight_kg + 6.25 * height_cm - 5 * age + 5
+    else:
+        return 10 * weight_kg + 6.25 * height_cm - 5 * age - 161
+
+
+@app.route('/api/v1/predict-weight', methods=['GET'])
+@token_required
+def predict_weight(current_user):
+    if not weight_model or not weight_scaler:
+        return jsonify({'error': 'Prediction model not loaded on server'}), 500
+
+    user_id = current_user['id']
+    user = db_query("SELECT * FROM users WHERE id=%s", (user_id,), one=True)
+
+    # ── NULL safety ───────────────────────────────────────────────
+    missing = [f for f in ['age', 'height', 'weight'] if not user.get(f)]
+    if missing:
+        return jsonify({
+            'error': f"Complete your profile first. Missing: {', '.join(missing)}"
+        }), 400
+
+    # ── User profile ──────────────────────────────────────────────
+    age = int(user['age'])
+    gender = user['gender']
+    gender_num = 1 if gender == 'male' else 0
+    height_cm = float(user['height'])
+    weight_kg = float(user['weight'])
+    activity = float(user['activity'] or 1.55)
+
+    bmr = calculate_bmr(weight_kg, height_cm, age, gender)
+    tdee = bmr * activity
+
+    # ── Avg daily calories last 30 days ───────────────────────────
+    meals = db_query("""
+        SELECT AVG(daily_total) as avg_cal FROM (
+            SELECT meal_date, SUM(calories) as daily_total
+            FROM meals WHERE user_id=%s
+              AND meal_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            GROUP BY meal_date
+        ) t
+    """, (user_id,), one=True)
+
+    avg_cal = float(meals['avg_cal'] or tdee)
+    surplus = avg_cal - tdee
+
+    # ── Predict weight CHANGE then add to current weight ──────────
+    predictions = []
+    for future_days in [7, 14, 30]:
+        features = np.array([[
+            age, gender_num, height_cm, weight_kg,
+            activity, future_days, avg_cal, tdee, bmr, surplus
+        ]])
+        change = float(weight_model.predict(weight_scaler.transform(features))[0])
+        predicted_kg = round(max(30.0, min(300.0, weight_kg + change)), 1)
+        change_kg = round(predicted_kg - weight_kg, 1)
+
+        predictions.append({
+            'days': future_days,
+            'predicted_weight_kg': predicted_kg,
+            'change_kg': change_kg,
+            'direction': 'loss' if change_kg < 0 else 'gain' if change_kg > 0 else 'stable'
+        })
+
+    return jsonify({
+        'username': user['username'],
+        'current_weight': weight_kg,
+        'target_weight': float(decrypt_field(str(user['target_weight'])) if user.get('target_weight') else 0),
+        'bmr': round(bmr),
+        'tdee': round(tdee),
+        'avg_daily_cal': round(avg_cal),
+        'calorie_surplus': round(surplus),
+        'goal': decrypt_field(user['goal']),
+        'predictions': predictions
     })
 
 
@@ -227,9 +356,10 @@ def api_register():
         return jsonify({'status': 'error', 'message': 'Username already exists'}), 409
 
     pw_hash = generate_password_hash(password)
+    encrypted_email = encrypt_field(email)
     user_id = db_query(
         'INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)',
-        (username, email, pw_hash), commit=True
+        (username, encrypted_email, pw_hash), commit=True
     )
     # Insert default alert settings
     db_query(
@@ -297,12 +427,12 @@ def get_profile(current_user):
         'profile': {
             'id':            u['id'],
             'username':      u['username'],
-            'email':         u['email'],
-            'name':          u['name'],
+            'email':         decrypt_field(u['email']),
+            'name':          decrypt_field(u['name']),
             'gender':        u['gender'],
-            'age':           u['age'],
-            'height':        u['height'],
-            'weight':        u['weight'],
+            'age':           int(decrypt_field(str(u['age_enc']))) if u.get('age_enc') else u['age'],
+            'height':        float(decrypt_field(str(u['height_enc']))) if u.get('height_enc') else u['height'],
+            'weight':        float(decrypt_field(str(u['weight_enc']))) if u.get('weight_enc') else u['weight'],
             'target_weight': u['target_weight'],
             'activity':      u['activity'],
             'goal':          u['goal'],
@@ -322,9 +452,24 @@ def update_profile(current_user):
     if not updates:
         return jsonify({'status': 'error', 'message': 'No valid fields to update'}), 400
 
+    # Encrypt PII fields before storage
+    if 'name' in updates and updates['name']:
+        updates['name'] = encrypt_field(updates['name'])
+
+    # Build the main update
     set_clause = ', '.join(f'{k} = %s' for k in updates)
     values = list(updates.values()) + [current_user['id']]
     db_query(f'UPDATE users SET {set_clause} WHERE id = %s', values, commit=True)
+
+    # Write encrypted copies of numeric fields into shadow _enc columns
+    enc_numeric = {}
+    for field in ('age', 'height', 'weight'):
+        if field in updates:
+            enc_numeric[f'{field}_enc'] = encrypt_field(updates[field])
+    if enc_numeric:
+        enc_set = ', '.join(f'{k} = %s' for k in enc_numeric)
+        enc_values = list(enc_numeric.values()) + [current_user['id']]
+    db_query(f'UPDATE users SET {enc_set} WHERE id = %s', enc_values, commit=True)
 
     # Fetch updated user
     user = db_query('SELECT * FROM users WHERE id = %s', (current_user['id'],), one=True)
@@ -334,19 +479,19 @@ def update_profile(current_user):
         'status': 'success',
         'message': 'Profile updated',
         'profile': {
-            'id':            user['id'],
-            'username':      user['username'],
-            'name':          user['name'],
-            'gender':        user['gender'],
-            'age':           user['age'],
-            'height':        user['height'],
-            'weight':        user['weight'],
-            'target_weight': user['target_weight'],
-            'activity':      user['activity'],
-            'goal':          user['goal'],
-            'bmr':           bmr,
-            'tdee':          tdee,
-        }
+        'id':            user['id'],
+        'username':      user['username'],
+        'name':          decrypt_field(user['name']),
+        'gender':        decrypt_field(user['gender']),
+        'age':    int(decrypt_field(str(user['age_enc']))) if user.get('age_enc') else user['age'],
+        'height': float(decrypt_field(str(user['height_enc']))) if user.get('height_enc') else user['height'],
+        'weight': float(decrypt_field(str(user['weight_enc']))) if user.get('weight_enc') else user['weight'],
+        'target_weight': decrypt_field(str(user['target_weight'])) if user['target_weight'] else None,
+        'activity':      decrypt_field(str(user['activity'])) if user['activity'] else None,
+        'goal':          decrypt_field(user['goal']),
+        'bmr':           bmr,
+        'tdee':          tdee,
+    }
     })
 
 
@@ -367,8 +512,8 @@ def get_meals(current_user):
     for r in rows:
         grouped.setdefault(r['meal_type'], []).append({
             'id': r['id'],
-            'name': r['food_name'],
-            'cal': r['calories'],
+            'name': decrypt_field(r['food_name']),
+            'cal': int(decrypt_field(str(r['calories_enc']))) if r.get('calories_enc') else r['calories'],
         })
 
     total = sum(r['calories'] for r in rows)
@@ -397,10 +542,12 @@ def add_meal(current_user):
     if not food_name or not calories:
         return jsonify({'status': 'error', 'message': 'food_name and calories required'}), 400
 
+    encrypted_food     = encrypt_field(food_name)
+    encrypted_calories = encrypt_field(calories)
     meal_id = db_query(
-        'INSERT INTO meals (user_id, meal_date, meal_type, food_name, calories) '
-        'VALUES (%s, %s, %s, %s, %s)',
-        (current_user['id'], meal_date, meal_type, food_name, int(calories)),
+        'INSERT INTO meals (user_id, meal_date, meal_type, food_name, calories, calories_enc) '
+        'VALUES (%s, %s, %s, %s, %s, %s)',
+        (current_user['id'], meal_date, meal_type, encrypted_food, int(calories), encrypted_calories),
         commit=True
     )
 
@@ -638,7 +785,8 @@ def progress_summary(current_user):
 
     # ── Weight progress toward target ──
     start_weight  = float(current_user.get('weight') or 0)
-    target_weight = float(current_user.get('target_weight') or 0)
+    raw_target    = current_user.get('target_weight')
+    target_weight = float(decrypt_field(str(raw_target))) if raw_target else 0
     current_weight = float(weight_rows[-1]['weight_kg']) if weight_rows else start_weight
     weight_progress_pct = 0
     if start_weight and target_weight and abs(target_weight - start_weight) > 0:
@@ -983,8 +1131,6 @@ def _send_push(user_id, title, body):
     except Exception as e:
         print(f'[FCM] Database error in _send_push: {e}')
 
-
-# TEST PUSH removed for production
 
 
 # ═══════════════════════════════════════════

@@ -13,10 +13,10 @@ USE nutripulse;
 CREATE TABLE IF NOT EXISTS users (
     id            INT AUTO_INCREMENT PRIMARY KEY,
     username      VARCHAR(80)  NOT NULL UNIQUE,
-    email         VARCHAR(255) NOT NULL,
+    email         TEXT         NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     -- profile fields
-    name          VARCHAR(120) DEFAULT NULL,
+    name          TEXT         DEFAULT NULL,
     gender        ENUM('male','female') DEFAULT 'male',
     age           INT          DEFAULT NULL,
     height        DECIMAL(5,1) DEFAULT NULL,   -- cm
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS meals (
     user_id    INT          NOT NULL,
     meal_date  DATE         NOT NULL,
     meal_type  ENUM('breakfast','lunch','dinner','snacks') NOT NULL,
-    food_name  VARCHAR(255) NOT NULL,
+    food_name  TEXT         NOT NULL,
     calories   INT          NOT NULL DEFAULT 0,
     created_at DATETIME     DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,

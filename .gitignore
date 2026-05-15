@@ -17,6 +17,7 @@ __pycache__/
 .env
 .env.*
 firebase-service-account.json
+encryption.key
 
 # Logs and databases
 *.log
@@ -37,3 +38,13 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+
+.env
+venv/
+__pycache__/
+*.pyc
+*.pem
+*.key
+encryption.key
+firebase-service-account.json
+models/*.pkl

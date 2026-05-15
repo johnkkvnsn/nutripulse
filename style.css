@@ -1711,7 +1711,7 @@ select.web-input {
 }
 
 .prog-bar-card {
-  margin: 0 32px;
+  margin: 0 32px 16px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -3109,7 +3109,7 @@ body.light .mob-nav {
   min-width: 180px;
 }
 
-.psc-actions .btn-cta, 
+.psc-actions .btn-cta,
 .psc-actions .btn-outline {
   margin-top: 0;
   width: 100%;
@@ -3131,6 +3131,7 @@ body.light .mob-nav {
     text-align: center;
     padding: 20px 16px;
   }
+
   .psc-actions {
     width: 100%;
   }
@@ -3219,8 +3220,9 @@ body.light .mob-nav {
     padding-right: 20px;
   }
 
-  .prog-bar-card {
-    margin: 0 20px;
+  .prog-bar-card,
+  .forecast-card {
+    margin: 0 20px 16px;
   }
 
   .avg-table-card {
@@ -3414,8 +3416,9 @@ body.light .mob-nav {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .prog-bar-card {
-    margin: 0 16px;
+  .prog-bar-card,
+  .forecast-card {
+    margin: 0 16px 16px;
   }
 
   .charts-layout {
@@ -3567,7 +3570,8 @@ body.light .mob-nav {
     font-size: 1.3rem;
   }
 
-  .pk-val {
+  .pk-val,
+  .fcm-val {
     font-size: 1.3rem;
   }
 
@@ -3712,9 +3716,76 @@ body.light .mob-nav {
     transition-duration: .01ms !important;
   }
 }
+
 .af-hint {
   font-size: .72rem;
   color: var(--text3);
   margin-top: 5px;
   font-weight: 500;
+}
+
+.forecast-card {
+  margin: 0 32px 16px;
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.1), rgba(56, 189, 248, 0.1));
+  border: 1.5px solid rgba(167, 139, 250, 0.2);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  animation: fadeUp .4s ease;
+}
+
+.fc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.fc-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--di);
+  letter-spacing: -0.3px;
+}
+
+.fc-status {
+  font-size: 0.7rem;
+  background: rgba(167, 139, 250, 0.15);
+  color: var(--di);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.fc-main {
+  font-size: 0.9rem;
+  color: var(--text2);
+  line-height: 1.6;
+}
+
+.fc-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.fcm-item {
+  text-align: center;
+}
+
+.fcm-val {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.fcm-lbl {
+  font-size: 0.65rem;
+  color: var(--text3);
+  font-weight: 600;
+  text-transform: uppercase;
 }
