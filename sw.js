@@ -19,19 +19,26 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log('[SW] Background message received:', payload);
-  const title = payload.data?.title || 'NutriPulse';
+  
+  // Payload might have notification and data fields
+  const title = payload.notification?.title || payload.data?.title || 'NutriPulse';
+  const body = payload.notification?.body || payload.data?.body || '';
+  const icon = payload.notification?.icon || payload.data?.icon || './icons/icon-192.png';
+  const url = payload.data?.url || './index.html';
+
   const options = {
-    body: payload.data?.body || '',
-    icon: payload.data?.icon || './icons/icon-192.png',
+    body: body,
+    icon: icon,
     badge: './icons/icon-192.png',
-    tag: 'nutripulse-notification',
+    tag: payload.notification?.tag || payload.data?.tag || 'nutripulse-alert',
     renotify: true,
-    data: { url: payload.data?.url || './' },
+    data: { url: url },
     actions: [
       { action: 'log', title: '📝 Log Now' },
       { action: 'dismiss', title: 'Dismiss' }
     ]
   };
+
   return self.registration.showNotification(title, options);
 });
 

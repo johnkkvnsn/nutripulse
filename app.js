@@ -806,6 +806,11 @@ window.addEventListener('beforeinstallprompt', e => {
 let swRegistration = null;
 let swReady = null;
 function registerSW() {
+  if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+    console.warn('[PWA] Service Worker registration failed: Insecure context. HTTPS is required for PWAs.');
+    return;
+  }
+
   if ('serviceWorker' in navigator) {
     swReady = navigator.serviceWorker.register('./sw.js')
       .then((reg) => {
@@ -839,9 +844,16 @@ firebase.initializeApp(firebaseConfig);
 let pendingFcmToken = null;
 
 async function requestNotifPermission() {
+  if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+    showToast('⚠️ Push notifications require HTTPS (or localhost).');
+    updatePushStatus('Insecure Context');
+    return;
+  }
+
   if (!('Notification' in window)) {
     console.warn('[FCM] Notification API not supported');
     updatePushStatus('Unsupported');
+    showToast('⚠️ Notifications not supported by this browser.');
     return;
   }
 

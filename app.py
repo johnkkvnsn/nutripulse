@@ -844,7 +844,7 @@ def _send_push(user_id, title, body):
         
         for row in tokens:
             try:
-                # Webpush configuration is critical for PWAs on iOS/Android
+                # 1. Webpush configuration (Critical for PWAs on PC/Android/iOS Safari)
                 webpush_config = fcm_messaging.WebpushConfig(
                     headers={'Urgency': 'high'},
                     notification=fcm_messaging.WebpushNotification(
@@ -858,9 +858,41 @@ def _send_push(user_id, title, body):
                             fcm_messaging.WebpushNotificationAction(action='log', title='📝 Log Now'),
                             fcm_messaging.WebpushNotificationAction(action='dismiss', title='Dismiss')
                         ]
+                    ),
+                    fcm_options=fcm_messaging.WebpushFCMOptions(
+                        link='/'
                     )
                 )
 
+                # 2. Android Config (Helps with priority and system-level handling)
+                android_config = fcm_messaging.AndroidConfig(
+                    priority='high',
+                    notification=fcm_messaging.AndroidNotification(
+                        title=title,
+                        body=body,
+                        icon='stock_ticker_update',
+                        color='#10B981',
+                        sound='default',
+                        tag='nutripulse-alert',
+                        click_action='OPEN_APP'
+                    )
+                )
+
+                # 3. APNS Config (Crucial for iOS Safari PWA push)
+                apns_config = fcm_messaging.APNSConfig(
+                    headers={'apns-priority': '10'},
+                    payload=fcm_messaging.APNSPayload(
+                        aps=fcm_messaging.Aps(
+                            alert=fcm_messaging.ApsAlert(title=title, body=body),
+                            sound='default',
+                            badge=1,
+                            mutable_content=True,
+                            content_available=True
+                        )
+                    )
+                )
+
+                # 4. Final Message Assembly
                 message = fcm_messaging.Message(
                     notification=fcm_messaging.Notification(
                         title=title,
@@ -869,9 +901,12 @@ def _send_push(user_id, title, body):
                     data={
                         'title': title,
                         'body':  body,
-                        'url':   '/'
+                        'url':   '/',
+                        'icon':  '/icons/icon-192.png'
                     },
                     webpush=webpush_config,
+                    android=android_config,
+                    apns=apns_config,
                     token=row['token'],
                 )
                 response = fcm_messaging.send(message)
