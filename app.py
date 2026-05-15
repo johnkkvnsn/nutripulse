@@ -858,9 +858,6 @@ def _send_push(user_id, title, body):
                             fcm_messaging.WebpushNotificationAction(action='log', title='📝 Log Now'),
                             fcm_messaging.WebpushNotificationAction(action='dismiss', title='Dismiss')
                         ]
-                    ),
-                    fcm_options=fcm_messaging.WebpushFCMOptions(
-                        link='/'
                     )
                 )
 
