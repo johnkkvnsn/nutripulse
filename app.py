@@ -76,14 +76,22 @@ DB_CONFIG = {
 ENCRYPTION_KEY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'encryption.key')
 
 def _load_or_generate_key():
-    """Load encryption key from file, or generate a new one on first run."""
+    """Load encryption key from ENV (Production) or File (Local)."""
+    # 1. Check for Environment Variable (Best for Render/Cloud)
+    env_key = os.environ.get('ENCRYPTION_KEY')
+    if env_key:
+        return env_key.encode('utf-8').strip()
+
+    # 2. Check for local file
     if os.path.exists(ENCRYPTION_KEY_FILE):
         with open(ENCRYPTION_KEY_FILE, 'rb') as f:
             return f.read().strip()
+            
+    # 3. Fallback: Generate new one (Only for first local setup)
     key = Fernet.generate_key()
     with open(ENCRYPTION_KEY_FILE, 'wb') as f:
         f.write(key)
-    print("🔐 Generated new encryption key → encryption.key")
+    print("🔐 Generated new local encryption key")
     return key
 
 FERNET_KEY = _load_or_generate_key()
