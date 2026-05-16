@@ -969,30 +969,24 @@ let pendingFcmToken = null;
 async function requestNotifPermission() {
   if (!window.isSecureContext && window.location.hostname !== 'localhost') {
     showToast('⚠️ Push notifications require HTTPS (or localhost).');
-    updatePushStatus('Insecure Context');
     return;
   }
 
   if (!('Notification' in window)) {
     console.warn('[FCM] Notification API not supported');
-    updatePushStatus('Unsupported');
     showToast('⚠️ Notifications not supported by this browser.');
     return;
   }
-
-  updatePushStatus('Requesting...');
 
   try {
     const perm = await Notification.requestPermission();
     console.log('[FCM] Permission result:', perm);
 
     if (perm === 'granted') {
-      // Wait for service worker registration to complete
       if (swReady) await swReady;
 
       if (!swRegistration) {
         console.warn('[FCM] No service worker registration available');
-        updatePushStatus('SW Error');
         return;
       }
 
@@ -1012,12 +1006,9 @@ async function requestNotifPermission() {
           APP.alertSettings.enabled = true;
           save();
           showToast('🔔 Push notifications enabled!');
-          updatePushStatus('Active');
 
-          // Send to server if user is authenticated
           sendFcmTokenToServer();
 
-          // Handle foreground messages
           messaging.onMessage((payload) => {
             console.log('[FCM] Foreground message:', payload);
             const title = payload.notification?.title || payload.data?.title || 'NutriPulse';
@@ -1029,25 +1020,18 @@ async function requestNotifPermission() {
           });
 
           scheduleMealReminders();
-        } else {
-          updatePushStatus('No Token');
         }
       }
     } else {
-      updatePushStatus('Denied');
-      showToast('⚠️ Notifications denied. Enable them in settings.');
+      showToast('⚠️ Notifications denied. Enable them in browser settings.');
     }
   } catch (e) {
     console.warn('[FCM] Setup failed:', e);
-    updatePushStatus('Failed');
-    // Fallback to local
     APP.alertSettings.enabled = true;
     save();
     scheduleMealReminders();
   }
 }
-
-// updatePushStatus removed as manual UI is deleted
 
 function sendFcmTokenToServer() {
   const token = pendingFcmToken || localStorage.getItem('np_fcm_token');

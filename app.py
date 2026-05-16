@@ -525,7 +525,7 @@ def get_meals(current_user):
         grouped.setdefault(r['meal_type'], []).append({
             'id': r['id'],
             'name': decrypt_field(r['food_name']),
-            'cal': int(decrypt_field(str(r['calories_enc']))) if r.get('calories_enc') else r['calories'],
+            'cal': r['calories'],
         })
 
     total = sum(r['calories'] for r in rows)
@@ -557,9 +557,9 @@ def add_meal(current_user):
     encrypted_food     = encrypt_field(food_name)
     encrypted_calories = encrypt_field(calories)
     meal_id = db_query(
-        'INSERT INTO meals (user_id, meal_date, meal_type, food_name, calories, calories_enc) '
-        'VALUES (%s, %s, %s, %s, %s, %s)',
-        (current_user['id'], meal_date, meal_type, encrypted_food, int(calories), encrypted_calories),
+        'INSERT INTO meals (user_id, meal_date, meal_type, food_name, calories) '
+        'VALUES (%s, %s, %s, %s, %s)',
+        (current_user['id'], meal_date, meal_type, encrypted_food, int(calories)),
         commit=True
     )
 
