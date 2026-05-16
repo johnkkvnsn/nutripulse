@@ -114,6 +114,9 @@ def decrypt_field(value):
         return cipher.decrypt(value.encode('utf-8')).decode('utf-8')
     except Exception:
         # Value was stored before encryption was enabled — return as-is
+        if isinstance(value, str) and value.startswith('gAAAAA'):
+            print("⚠️ Decryption failed for a valid ciphertext. Key mismatch!")
+            return "[Decryption Failed]"
         return value
 
 
@@ -465,24 +468,20 @@ def update_profile(current_user):
     if not updates:
         return jsonify({'status': 'error', 'message': 'No valid fields to update'}), 400
 
-    # Encrypt PII fields before storage
-    if 'name' in updates and updates['name']:
-        updates['name'] = encrypt_field(updates['name'])
+    # Encrypt PII and health metric fields before storage
+    fields_to_encrypt = ('name', 'age', 'height', 'weight', 'target_weight')
+    for field in fields_to_encrypt:
+        if field in updates and updates[field] is not None:
+            # Only encrypt if the value is not empty string, else leave it or None
+            if str(updates[field]).strip() != "":
+                updates[field] = encrypt_field(updates[field])
+            else:
+                updates[field] = None
 
     # Build the main update
     set_clause = ', '.join(f'{k} = %s' for k in updates)
     values = list(updates.values()) + [current_user['id']]
     db_query(f'UPDATE users SET {set_clause} WHERE id = %s', values, commit=True)
-
-    # Write encrypted copies of numeric fields into shadow _enc columns
-    enc_numeric = {}
-    for field in ('age', 'height', 'weight'):
-        if field in updates:
-            enc_numeric[f'{field}_enc'] = encrypt_field(updates[field])
-    if enc_numeric:
-        enc_set = ', '.join(f'{k} = %s' for k in enc_numeric)
-        enc_values = list(enc_numeric.values()) + [current_user['id']]
-    db_query(f'UPDATE users SET {enc_set} WHERE id = %s', enc_values, commit=True)
 
     # Fetch updated user
     user = db_query('SELECT * FROM users WHERE id = %s', (current_user['id'],), one=True)
@@ -492,19 +491,19 @@ def update_profile(current_user):
         'status': 'success',
         'message': 'Profile updated',
         'profile': {
-        'id':            user['id'],
-        'username':      user['username'],
-        'name':          decrypt_field(user['name']),
-        'gender':        decrypt_field(user['gender']),
-        'age':    int(decrypt_field(str(user['age_enc']))) if user.get('age_enc') else user['age'],
-        'height': float(decrypt_field(str(user['height_enc']))) if user.get('height_enc') else user['height'],
-        'weight': float(decrypt_field(str(user['weight_enc']))) if user.get('weight_enc') else user['weight'],
-        'target_weight': decrypt_field(str(user['target_weight'])) if user['target_weight'] else None,
-        'activity':      decrypt_field(str(user['activity'])) if user['activity'] else None,
-        'goal':          decrypt_field(user['goal']),
-        'bmr':           bmr,
-        'tdee':          tdee,
-    }
+            'id':            user['id'],
+            'username':      user['username'],
+            'name':          decrypt_field(user['name']),
+            'gender':        user['gender'],
+            'age':           int(decrypt_field(user.get('age'))) if user.get('age') else 0,
+            'height':        float(decrypt_field(user.get('height'))) if user.get('height') else 0,
+            'weight':        float(decrypt_field(user.get('weight'))) if user.get('weight') else 0,
+            'target_weight': float(decrypt_field(user.get('target_weight'))) if user.get('target_weight') else None,
+            'activity':      user['activity'],
+            'goal':          user['goal'],
+            'bmr':           bmr,
+            'tdee':          tdee,
+        }
     })
 
 
@@ -954,6 +953,10 @@ def save_fcm_token():
         try:
             jwt_data = jwt.decode(auth_header[7:], SECRET_KEY, algorithms=['HS256'])
             user_id = int(jwt_data['sub'])
+            # Verify user actually exists in the database
+            user_exists = db_query('SELECT id FROM users WHERE id = %s', (user_id,), one=True)
+            if not user_exists:
+                user_id = None
         except Exception:
             pass
 
@@ -966,7 +969,7 @@ def save_fcm_token():
             user_id = user['id'] if user else None
 
     if not user_id:
-        return jsonify({'status': 'error', 'message': 'User not identified'}), 400
+        return jsonify({'status': 'error', 'message': 'User not identified or no longer exists'}), 401
 
     # Use an UPSERT-like logic: Delete only THIS specific token if it exists elsewhere, 
     # then insert it for this user. This allows one user to have multiple device tokens.
@@ -1231,4 +1234,4 @@ daemon.start()
 # ═══════════════════════════════════════════
 if __name__ == '__main__':
     # Set debug=False for production
-    app.run(debug=False, port=5000, host='127.0.0.1')
+    app.run(debug=True, port=5000, host='127.0.0.1')

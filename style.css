@@ -31,7 +31,7 @@
   --radius-xl: 28px;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.6);
-  --sidebar-w: 240px;
+  --sidebar-w: clamp(200px, 17vw, 240px);
   --header-h: 60px;
   --mob-nav-h: 68px;
   --transition: .22s cubic-bezier(.4, 0, .2, 1);
@@ -43,6 +43,20 @@
   --show-mob-nav: none;
   --show-web-dash: block;
   --show-mob-dash: none;
+
+  /* NEW: Fluid spacing scale */
+  --space-xs: clamp(8px, 1vw, 12px);
+  --space-sm: clamp(12px, 1.5vw, 20px);
+  --space-md: clamp(16px, 2vw, 28px);
+  --space-lg: clamp(20px, 2.5vw, 40px);
+  --space-xl: clamp(28px, 3vw, 56px);
+
+  /* NEW: Content max-widths per layout zone */
+  --content-max: 1440px;
+  --prose-max: 720px;
+  --sidebar-max: 280px;
+
+
 }
 
 /* Light Mode */
@@ -477,12 +491,14 @@ button {
 
 /* ─── CONTENT AREA ─── */
 .content {
-  flex: 1;
   margin-left: var(--sidebar-w);
-  display: flex;
-  flex-direction: column;
-  height: 100dvh;
-  overflow-y: auto;
+  flex: 1;
+  min-width: 0;
+  /* ADD: prevents flex overflow */
+  max-width: calc(100vw - var(--sidebar-w));
+  /* ADD: hard right boundary */
+  overflow-x: hidden;
+  /* ADD: catches any runaway child */
 }
 
 /* ─── TOPBAR (web) ─── */
@@ -549,12 +565,14 @@ body.light .topbar {
   border: none;
   color: var(--text);
   font-size: .85rem;
-  width: 180px;
+  width: clamp(120px, 12vw, 260px);
   font-family: inherit;
+  transition: width .2s ease;
 }
 
 .tb-search-inp:focus {
   outline: none;
+  width: clamp(160px, 18vw, 360px);
 }
 
 .tb-search-inp::placeholder {
@@ -684,6 +702,10 @@ body.light .mob-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap;
+  /* ADD THIS */
+  gap: 12px;
+  /* ADD THIS */
 }
 
 .wd-greeting {
@@ -693,9 +715,12 @@ body.light .mob-header {
 }
 
 .wd-headline {
-  font-size: 1.8rem;
+  font-size: clamp(1.4rem, 2vw, 2.4rem);
   font-weight: 800;
   letter-spacing: -.6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .wd-date {
@@ -712,7 +737,7 @@ body.light .mob-header {
 /* KPI Row */
 .wd-kpi-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
 }
 
@@ -743,10 +768,14 @@ body.light .mob-header {
 }
 
 .kpi-val {
-  font-size: 1.7rem;
+  font-size: clamp(1.3rem, 1.8vw, 2.1rem);
+  /* already changed above */
   font-weight: 800;
   letter-spacing: -.5px;
   line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .kpi-lbl {
@@ -754,6 +783,9 @@ body.light .mob-header {
   color: var(--text2);
   margin-top: 3px;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .kpi-val.green {
@@ -1350,7 +1382,7 @@ select.web-input {
 /* ─── PROFILE PAGE ─── */
 .page-layout {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: 1fr clamp(280px, 22%, 380px);
   gap: 24px;
   padding: 28px 32px;
 }
@@ -1360,7 +1392,7 @@ select.web-input {
 }
 
 .page-title {
-  font-size: 1.7rem;
+  font-size: clamp(1.4rem, 2vw, 2.2rem);
   font-weight: 800;
   letter-spacing: -.6px;
 }
@@ -1721,7 +1753,7 @@ select.web-input {
 }
 
 .pk-val {
-  font-size: 1.6rem;
+  font-size: clamp(1.3rem, 1.6vw, 2rem);
   font-weight: 800;
   color: var(--accent);
   letter-spacing: -.4px;
@@ -1779,7 +1811,7 @@ select.web-input {
 
 .charts-layout {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 14px;
   padding: 16px 32px;
   width: 100%;
@@ -1799,7 +1831,8 @@ select.web-input {
 }
 
 .chart-box.wide {
-  grid-column: span 1;
+  grid-column: 1 / -1;
+  /* full width by default on small/medium screens */
 }
 
 .cb-title {
@@ -1971,11 +2004,12 @@ body.light .mob-nav {
 .modal-box {
   background: var(--card);
   border-radius: 28px 28px 0 0;
-  width: 100%;
-  max-width: 560px;
+  width: min(560px, calc(100vw - 32px));
+  /* fluid: full-width on phones, capped on desktop */
   padding: 0 22px 36px;
   animation: sheetUp .3s cubic-bezier(.34, 1.56, .64, 1);
-  max-height: 90vh;
+  max-height: 90dvh;
+  /* dvh instead of vh */
   overflow-y: auto;
 }
 
@@ -3170,10 +3204,19 @@ body.light .mob-nav {
 }
 
 
-/* ══════════════════════════════════════
-   RESPONSIVE — BREAKPOINTS
-   Order: largest → smallest
-══════════════════════════════════════ */
+/*
+  NUTRIPULSE — BREAKPOINT MAP
+  ════════════════════════════════════════════════════════
+  xs:   < 400px   Extra-small phones
+  sm:   400–767px  Phones
+  md:   768–899px  Large phones / small tablets
+  lg:   900–1023px Tablets (sidebar hidden, web layout)
+  xl:   1024–1399px Standard desktop
+  2xl:  1400–1699px Wide desktop
+  3xl:  1700–2199px Ultra-wide / large monitors
+  4k:   ≥ 2200px  4K / TV / very large displays
+  ════════════════════════════════════════════════════════
+*/
 
 /* ── Large Tablet / Narrow Desktop (max 1024px) ── */
 @media (max-width: 1024px) {
@@ -3188,6 +3231,55 @@ body.light .mob-nav {
 
   .charts-layout {
     grid-template-columns: 1.6fr 1fr 1fr;
+  }
+}
+
+/* ── Standard Desktop (1024px–1399px) ── */
+@media (min-width: 1024px) and (max-width: 1399px) {
+
+  /* Sidebar slightly narrower to give content more room */
+  :root {
+    --sidebar-w: 220px;
+  }
+
+  .chart-box.wide {
+    grid-column: span 2;
+    /* span 2 of 3 columns on standard desktop */
+  }
+
+  /* Dashboard body: main gets more weight than sidebar */
+  .wd-body {
+    grid-template-columns: 1fr 280px;
+    gap: 18px;
+  }
+
+  /* KPI row: 4 columns but tighter cards */
+  .wd-kpi-row {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .kpi-card {
+    padding: 16px 14px;
+  }
+
+  /* Charts: keep 3-col but balance proportions */
+  .charts-layout {
+    grid-template-columns: 1.8fr 1fr 1fr;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  /* Web dashboard padding */
+  .web-dash {
+    padding: 24px 28px;
+  }
+
+  /* Page layout sidebar */
+  .page-layout {
+    grid-template-columns: 1fr 280px;
+    padding: 24px 28px;
+    gap: 20px;
   }
 }
 
@@ -3683,7 +3775,7 @@ body.light .mob-nav {
 }
 
 /* ── Landscape phone (short + wide) ── */
-@media (max-height: 500px) and (max-width: 900px) {
+@media (max-height: 600px) and (max-width: 960px) and (orientation: landscape) {
   .mob-hero {
     padding: 12px 16px 16px;
   }
@@ -3728,40 +3820,267 @@ body.light .mob-nav {
   .auth-box {
     padding: 16px;
   }
+
+  /* Compact hero: ring + strip side by side in landscape */
+  .mob-hero {
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    padding: 8px 16px 12px;
+  }
+
+  .mob-strip {
+    flex: 1;
+    flex-direction: column;
+    margin-top: 0;
+    gap: 8px;
+  }
+
+  /* Nav stays but shorter */
+  .mob-nav {
+    height: 54px;
+  }
 }
 
 /* ── Wide Desktop (min 1400px) ── */
+/* ── Wide Desktop (1400px–1699px) ── */
 @media (min-width: 1400px) {
+  :root {
+    --sidebar-w: 256px;
+  }
+
+  .modal-bg {
+    align-items: center;
+    /* center modals vertically on wide desktop (not bottom-sheet) */
+  }
+
+  .modal-box {
+    width: min(640px, calc(100vw - 48px));
+    border-radius: var(--radius-xl);
+    /* full radius when centered, not bottom-sheet */
+  }
+
+  /* Centered content with generous max-width */
   .web-dash {
-    max-width: 1400px;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 32px 40px;
   }
 
-  .wd-body {
-    grid-template-columns: 1fr 340px;
-  }
-
+  /* 4-column KPI row with breathing room */
   .wd-kpi-row {
     grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
   }
 
+  .kpi-card {
+    padding: 22px 20px;
+  }
+
+  .kpi-val {
+    font-size: 2rem;
+  }
+
+  /* Dashboard body: wider sidebar panel */
+  .wd-body {
+    grid-template-columns: 1fr 360px;
+    gap: 24px;
+  }
+
+  /* Charts: optimised 3-col split */
   .charts-layout {
-    grid-template-columns: 2.2fr 1fr 1fr;
+    grid-template-columns: 2.4fr 1fr 1fr;
+    padding-left: 40px;
+    padding-right: 40px;
+    gap: 16px;
+  }
+
+  .chart-box.wide {
+    grid-column: span 1;
+    /* each chart gets its own column on wide desktop */
+  }
+
+  /* Taller chart boxes so data breathes */
+  .cb-body {
+    height: 240px;
+    min-height: 240px;
+    max-height: 240px;
+  }
+
+  .cb-body canvas {
+    max-height: 240px;
+  }
+
+  /* Progress KPI: all 4 in one row */
+  .prog-kpi-bar {
+    grid-template-columns: repeat(4, 1fr);
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+
+  /* Page layout: true two-col */
+  .page-layout {
+    grid-template-columns: 1fr 320px;
+    padding: 32px 40px;
+    gap: 28px;
+  }
+
+  /* Typography scales up slightly */
+  .wd-headline {
+    font-size: 2rem;
+  }
+
+  .page-title {
+    font-size: 2rem;
   }
 }
 
 /* ── Ultra-wide (min 1700px) ── */
+/* ── Ultra-wide (1700px–2199px) ── */
 @media (min-width: 1700px) {
   :root {
-    --sidebar-w: 260px;
+    --sidebar-w: 272px;
   }
 
+  /* Prevent content from stretching across the full 1920px+ width */
   .web-dash {
-    padding: 36px 40px;
-    max-width: 1500px;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 36px 48px;
   }
 
+  /* Sidebar headline scales up */
   .wd-headline {
     font-size: 2.2rem;
+  }
+
+  /* KPI values bigger on large monitors */
+  .kpi-val {
+    font-size: 2.1rem;
+  }
+
+  /* Chart boxes taller */
+  .cb-body {
+    height: 280px;
+    min-height: 280px;
+    max-height: 280px;
+  }
+
+  .cb-body canvas {
+    max-height: 280px;
+  }
+
+  /* Wider sidebar on dashboard body */
+  .wd-body {
+    grid-template-columns: 1fr 400px;
+    gap: 28px;
+  }
+
+  /* 5-column KPI on ultra-wide if you ever add a 5th KPI */
+  /* .wd-kpi-row { grid-template-columns: repeat(5, 1fr); } */
+
+  /* Page layouts: wider side panel */
+  .page-layout {
+    grid-template-columns: 1fr 360px;
+    padding: 36px 48px;
+    gap: 32px;
+  }
+
+  /* Charts: even more horizontal real estate */
+  .charts-layout {
+    grid-template-columns: 2.6fr 1fr 1fr;
+    padding-left: 48px;
+    padding-right: 48px;
+    gap: 18px;
+  }
+
+  /* Progress layout */
+  .prog-kpi-bar {
+    padding-left: 48px;
+    padding-right: 48px;
+  }
+}
+
+/* ── 4K / Very large displays (≥ 2200px) ── */
+@media (min-width: 2200px) {
+  :root {
+    --sidebar-w: 300px;
+    --header-h: 70px;
+  }
+
+  body {
+    font-size: 17px;
+    /* base text size scales up */
+  }
+
+  .modal-box {
+    width: min(700px, calc(100vw - 96px));
+  }
+
+  /* Hard cap: never stretch past 1800px */
+  .web-dash {
+    max-width: 1800px;
+    margin: 0 auto;
+    padding: 48px 60px;
+  }
+
+  /* Dashboard body: massive sidebar for all-day visibility */
+  .wd-body {
+    grid-template-columns: 1fr 460px;
+    gap: 36px;
+  }
+
+  /* KPI cards: much bigger touch/read targets */
+  .kpi-card {
+    padding: 28px 24px;
+    gap: 18px;
+  }
+
+  .kpi-val {
+    font-size: 2.4rem;
+  }
+
+  .kpi-icon-wrap {
+    font-size: 2.2rem;
+  }
+
+  /* Charts taller */
+  .cb-body,
+  .cb-body canvas {
+    height: 320px;
+    min-height: 320px;
+    max-height: 320px;
+  }
+
+  /* Page headers: scale up */
+  .wd-headline,
+  .page-title {
+    font-size: 2.6rem;
+  }
+
+  /* Page layout */
+  .page-layout {
+    grid-template-columns: 1fr 400px;
+    padding: 48px 60px;
+    gap: 36px;
+  }
+
+  /* Charts */
+  .charts-layout {
+    grid-template-columns: 2.8fr 1fr 1fr;
+    padding-left: 60px;
+    padding-right: 60px;
+    gap: 20px;
+  }
+
+  /* Topbar: taller */
+  .topbar {
+    padding: 0 48px;
+  }
+
+  /* Modals: don't go too wide */
+  .modal-box {
+    max-width: 680px;
   }
 }
 

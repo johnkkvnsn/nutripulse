@@ -18,10 +18,10 @@ CREATE TABLE IF NOT EXISTS users (
     -- profile fields
     name          TEXT         DEFAULT NULL,
     gender        ENUM('male','female') DEFAULT 'male',
-    age           INT          DEFAULT NULL,
-    height        DECIMAL(5,1) DEFAULT NULL,   -- cm
-    weight        DECIMAL(5,1) DEFAULT NULL,   -- kg
-    target_weight DECIMAL(5,1) DEFAULT NULL,   -- kg
+    age           TEXT         DEFAULT NULL,
+    height        TEXT         DEFAULT NULL,   -- stored as encrypted cm
+    weight        TEXT         DEFAULT NULL,   -- stored as encrypted kg
+    target_weight TEXT         DEFAULT NULL,   -- stored as encrypted kg
     activity      DECIMAL(3,2) DEFAULT 1.55,
     goal          ENUM('lose','maintain','gain') DEFAULT 'maintain',
     created_at    DATETIME     DEFAULT CURRENT_TIMESTAMP,
