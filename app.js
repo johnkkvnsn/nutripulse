@@ -1,4 +1,4 @@
-/* ══════════════════════════════════════
+﻿/* ══════════════════════════════════════
    NutriPulse — App Logic v3
    REST API + Offline-First PWA
 ══════════════════════════════════════ */
@@ -276,6 +276,8 @@ function updateDonut(bfCal, luCal, diCal, snCal) {
   // Mobile donut
   const mobCtx = document.getElementById('mobDonutChart');
   if (mobCtx) {
+    const existingMob = Chart.getChart(mobCtx);
+    if (existingMob) existingMob.destroy();
     new Chart(mobCtx, {
       type: 'doughnut',
       data: { datasets: [{ data, backgroundColor: colors, borderWidth: 0, hoverOffset: 4 }] },
@@ -1735,22 +1737,26 @@ function init() {
 
     if (!age || !height || !weight) { showToast('Please fill in age, height, and weight'); return; }
 
-    APP.user = { name, age, height, weight, targetWeight, activity, gender: APP.gender, goal: APP.goal };
-    save();
+    try {
+      APP.user = { name, age, height, weight, targetWeight, activity, gender: APP.gender, goal: APP.goal };
+      save();
 
-    // Push to server if online
-    if (isOnline()) {
-      await api('/users/profile', {
-        method: 'PUT',
-        body: JSON.stringify({ name, age: parseInt(age), height: parseFloat(height), weight: parseFloat(weight), target_weight: parseFloat(targetWeight) || null, activity: parseFloat(activity), gender: APP.gender, goal: APP.goal })
-      });
+      // Push to server if online
+      if (isOnline()) {
+        await api('/users/profile', {
+          method: 'PUT',
+          body: JSON.stringify({ name, age: parseInt(age), height: parseFloat(height), weight: parseFloat(weight), target_weight: parseFloat(targetWeight) || null, activity: parseFloat(activity), gender: APP.gender, goal: APP.goal })
+        });
+      }
+
+      showResultCard();
+      updateHomeUI();
+      showToast('✅ Profile saved!');
+      navigate('home');
+    } catch (err) {
+      console.error('Save profile error:', err);
+      showToast('❌ Error saving profile. Please try again.');
     }
-
-    showResultCard();
-    updateHomeUI();
-    showProfileView();
-    showToast('✅ Profile saved!');
-    navigate('home');
   };
 
   // Weight log — web home
