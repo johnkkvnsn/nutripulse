@@ -56,6 +56,7 @@ except Exception as e:
 
 # ─── CONFIG ──────────────────────────────────
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 SECRET_KEY = os.environ.get('JWT_SECRET', 'nutripulse-dev-secret-change-in-prod')
@@ -264,23 +265,27 @@ def predict_weight(current_user):
     user_id = current_user['id']
     user = db_query("SELECT * FROM users WHERE id=%s", (user_id,), one=True)
 
-    # ── NULL safety ───────────────────────────────────────────────
     missing = [f for f in ['age', 'height', 'weight'] if not user.get(f)]
     if missing:
         return jsonify({
             'error': f"Complete your profile first. Missing: {', '.join(missing)}"
         }), 400
 
-    # ── User profile ──────────────────────────────────────────────
-    age = int(user['age'])
-    gender = user['gender']
-    gender_num = 1 if gender == 'male' else 0
-    height_cm = float(user['height'])
-    weight_kg = float(user['weight'])
-    activity = float(user['activity'] or 1.55)
-
-    bmr = calculate_bmr(weight_kg, height_cm, age, gender)
-    tdee = bmr * activity
+    # ── User profile (Decrypted) ──────────────────────────────────
+    try:
+        age = int(decrypt_field(user.get('age')))
+        gender = user.get('gender')
+        gender_num = 1 if gender == 'male' else 0
+        height_cm = float(decrypt_field(user.get('height')))
+        weight_kg = float(decrypt_field(user.get('weight')))
+        activity = float(user.get('activity') or 1.55)
+        
+        # Calculate BMR/TDEE
+        bmr = 10 * weight_kg + 6.25 * height_cm - 5 * age + (5 if gender == 'male' else -161)
+        tdee = bmr * activity
+    except Exception as e:
+        print(f"Prediction Decryption Error: {e}")
+        return jsonify({'error': 'Profile data corrupted or missing'}), 400
 
     # ── Avg daily calories last 30 days ───────────────────────────
     meals = db_query("""
@@ -430,10 +435,10 @@ def get_profile(current_user):
             'email':         decrypt_field(u['email']),
             'name':          decrypt_field(u['name']),
             'gender':        u['gender'],
-            'age':           int(decrypt_field(str(u['age_enc']))) if u.get('age_enc') else u['age'],
-            'height':        float(decrypt_field(str(u['height_enc']))) if u.get('height_enc') else u['height'],
-            'weight':        float(decrypt_field(str(u['weight_enc']))) if u.get('weight_enc') else u['weight'],
-            'target_weight': u['target_weight'],
+            'age':           int(decrypt_field(u.get('age'))) if u.get('age') else 0,
+            'height':        float(decrypt_field(u.get('height'))) if u.get('height') else 0,
+            'weight':        float(decrypt_field(u.get('weight'))) if u.get('weight') else 0,
+            'target_weight': float(decrypt_field(u.get('target_weight'))) if u.get('target_weight') else None,
             'activity':      u['activity'],
             'goal':          u['goal'],
             'bmr':           bmr,
@@ -968,15 +973,33 @@ def save_fcm_token():
 #  BUSINESS LOGIC (server-side)
 # ═══════════════════════════════════════════
 def _calc_bmr(user):
-    """Mifflin-St Jeor formula."""
-    w = float(user.get('weight') or 0)
-    h = float(user.get('height') or 0)
-    a = int(user.get('age') or 0)
-    if not w or not h or not a:
+    """Mifflin-St Jeor formula with decryption support."""
+    try:
+        # 1. Get raw values
+        raw_w = user.get('weight')
+        raw_h = user.get('height')
+        raw_a = user.get('age')
+        
+        # 2. Decrypt (these return the decrypted string or the original if not encrypted)
+        dec_w = decrypt_field(raw_w)
+        dec_h = decrypt_field(raw_h)
+        dec_a = decrypt_field(raw_a)
+        
+        # 3. Convert to numbers
+        w = float(dec_w) if dec_w and dec_w != 'None' else 0
+        h = float(dec_h) if dec_h and dec_h != 'None' else 0
+        a = int(dec_a) if dec_a and dec_a != 'None' else 0
+        
+        gender = user.get('gender', 'male')
+        
+        if not w or not h or not a:
+            return 2000
+            
+        bmr = 10 * w + 6.25 * h - 5 * a + (-161 if gender == 'female' else 5)
+        return round(bmr)
+    except Exception as e:
+        print(f"BMR Calc Error (Decryption): {e}")
         return 2000
-    gender = user.get('gender', 'male')
-    bmr = 10 * w + 6.25 * h - 5 * a + (-161 if gender == 'female' else 5)
-    return round(bmr)
 
 
 def _calc_tdee(user):

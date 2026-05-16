@@ -303,6 +303,11 @@
               <div class="wd-date" id="wdDate"></div>
             </div>
 
+            <div class="side-card tip-card">
+              <div class="sc-title">💡 Tip of the Day</div>
+              <div class="tip-text" id="tipText"></div>
+            </div>
+
             <div class="wd-kpi-row">
               <div class="kpi-card kpi-consumed">
                 <div class="kpi-icon-wrap">🔥</div>
@@ -408,10 +413,6 @@
                   </div>
                   <div class="weight-history" id="weightHistory"></div>
                 </div>
-                <div class="side-card tip-card">
-                  <div class="sc-title">💡 Tip of the Day</div>
-                  <div class="tip-text" id="tipText"></div>
-                </div>
               </div>
             </div>
           </div>
@@ -443,6 +444,14 @@
             </div>
 
             <div class="mob-body">
+              <!-- MOBILE TIP CARD -->
+              <div class="mob-tip-card">
+                <div class="mtc-icon">💡</div>
+                <div class="mtc-content">
+                  <div class="mtc-title">Tip of the Day</div>
+                  <div class="mtc-text" id="tipTextMob">Loading tip...</div>
+                </div>
+              </div>
               <div class="mob-sec-hd">
                 <span class="mob-sec-title">Today's Meals</span>
                 <span class="mob-date" id="mobDate"></span>
@@ -491,6 +500,42 @@
                     <div class="mm-cal" id="mm-cal-snacks">0 kcal</div>
                     <button class="mm-btn" data-meal="snacks">+</button>
                   </div>
+                </div>
+              </div>
+
+              <!-- MOBILE FOOD LOG -->
+              <div class="food-log" id="mobFoodLog">
+                <div class="food-log-empty">
+                  <div style="font-size:2rem">🍽</div>
+                  <div>No food logged today</div>
+                  <div style="font-size:0.8rem;opacity:0.5">Click "+ Add" on any meal to start</div>
+                </div>
+              </div>
+
+              <!-- MOBILE CALORIE BREAKDOWN -->
+              <div class="side-card" style="margin-top:16px;">
+                <div class="sc-title">Calorie Breakdown</div>
+                <div class="donut-wrap"><canvas id="mobDonutChart" width="140" height="140"></canvas></div>
+                <div class="donut-legend">
+                  <div class="dl-item"><span class="dl-dot" style="background:#ff9a3c"></span>Breakfast<span
+                      class="dl-val" id="mob-dl-breakfast">0</span></div>
+                  <div class="dl-item"><span class="dl-dot" style="background:#00e5a0"></span>Lunch<span class="dl-val"
+                      id="mob-dl-lunch">0</span></div>
+                  <div class="dl-item"><span class="dl-dot" style="background:#7c6cf0"></span>Dinner<span class="dl-val"
+                      id="mob-dl-dinner">0</span></div>
+                  <div class="dl-item"><span class="dl-dot" style="background:#ff6b6b"></span>Snacks<span class="dl-val"
+                      id="mob-dl-snacks">0</span></div>
+                </div>
+              </div>
+
+              <!-- MOBILE WEIGHT LOG -->
+              <div class="mob-sec-hd" style="margin-top: 24px;">
+                <span class="mob-sec-title">Track Weight</span>
+              </div>
+              <div class="mob-weight-card">
+                <div class="mwc-input-wrap">
+                  <input type="number" class="mob-input" id="weightLogInputMob" placeholder="70.5" step="0.1">
+                  <button class="btn-accent" id="logWeightBtnMob">Log Weight</button>
                 </div>
               </div>
             </div>
@@ -793,7 +838,17 @@
             </div>
             <div class="chart-box">
               <div class="cb-title">Meal Distribution</div>
-              <div class="cb-body center"><canvas id="mealPieChart" width="160" height="160"></canvas></div>
+              <div class="cb-body center"><canvas id="mealPieChart"></canvas></div>
+              <div class="donut-legend">
+                <div class="dl-item"><span class="dl-dot" style="background:#fb923c"></span>Breakfast<span
+                    class="dl-val" id="pie-bf">—</span></div>
+                <div class="dl-item"><span class="dl-dot" style="background:#22d3a0"></span>Lunch<span class="dl-val"
+                    id="pie-lu">—</span></div>
+                <div class="dl-item"><span class="dl-dot" style="background:#a78bfa"></span>Dinner<span class="dl-val"
+                    id="pie-di">—</span></div>
+                <div class="dl-item"><span class="dl-dot" style="background:#fb7185"></span>Snacks<span class="dl-val"
+                    id="pie-sn">—</span></div>
+              </div>
             </div>
           </div>
 

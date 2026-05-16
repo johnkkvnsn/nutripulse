@@ -24,6 +24,8 @@ const APP = {
   notifications: [],  // { id, type, icon, title, desc, time, unread }
 };
 
+
+
 const TIPS = [
   'Drinking water before meals can reduce calorie intake by up to 13%.',
   'Eating slowly helps you feel full sooner — aim for 20 minutes per meal.',
@@ -271,6 +273,15 @@ function updateDonut(bfCal, luCal, diCal, snCal) {
       animation: { duration: 400 }
     }
   });
+  // Mobile donut
+  const mobCtx = document.getElementById('mobDonutChart');
+  if (mobCtx) {
+    new Chart(mobCtx, {
+      type: 'doughnut',
+      data: { datasets: [{ data, backgroundColor: colors, borderWidth: 0, hoverOffset: 4 }] },
+      options: { cutout: '70%', responsive: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { duration: 400 } }
+    });
+  }
 }
 
 // ─── MAIN UI UPDATE ───────────────────────
@@ -300,12 +311,17 @@ function updateHomeUI() {
 
   // Web food log
   buildWebFoodLog();
+  buildMobFoodLog();
 
   // Side donut
   const [bf, lu, di, sn] = meals.map(m => mealCal(m));
   updateDonut(bf, lu, di, sn);
   setText('dl-breakfast', bf); setText('dl-lunch', lu);
   setText('dl-dinner', di); setText('dl-snacks', sn);
+
+  // Mobile donut values
+  setText('mob-dl-breakfast', bf); setText('mob-dl-lunch', lu);
+  setText('mob-dl-dinner', di); setText('mob-dl-snacks', sn);
 
   // — MOBILE —
   drawRing('mobRingCanvas', consumed, goal, 180);
@@ -342,9 +358,10 @@ function updateHomeUI() {
   setText('tbAvatar', (APP.user?.name?.[0] || 'U').toUpperCase());
   setText('mobAvatar', (APP.user?.name?.[0] || 'U').toUpperCase());
 
-  // Tip
+  // Tip — sync both desktop and mobile
   const tipIdx = Math.floor(Date.now() / 86400000) % TIPS.length;
   setText('tipText', TIPS[tipIdx]);
+  setText('tipTextMob', TIPS[tipIdx]);
 }
 
 function buildWebFoodLog() {
@@ -358,6 +375,34 @@ function buildWebFoodLog() {
     (log[m] || []).forEach((f, i) => allItems.push({ ...f, meal: m, idx: i }));
   });
 
+  if (!allItems.length) {
+    container.innerHTML = '';
+    container.appendChild(createEmpty());
+    return;
+  }
+  container.innerHTML = allItems.map(f => `
+    <div class="food-log-item">
+      <div class="fli-left">
+        <span class="fli-meal-dot" style="background:${MEAL_COLORS[f.meal]}"></span>
+        <span class="fli-name">${f.name}</span>
+        <span style="font-size:.75rem;color:var(--text3);text-transform:capitalize">${f.meal}</span>
+      </div>
+      <div class="fli-right">
+        <span class="fli-cal">${f.cal} kcal</span>
+        <button class="fli-del" data-meal="${f.meal}" data-idx="${f.idx}">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function buildMobFoodLog() {
+  const log = todayLog();
+  const container = document.getElementById('mobFoodLog');
+  if (!container) return;
+  const allItems = [];
+  ['breakfast', 'lunch', 'dinner', 'snacks'].forEach(m => {
+    (log[m] || []).forEach((f, i) => allItems.push({ ...f, meal: m, idx: i }));
+  });
   if (!allItems.length) {
     container.innerHTML = '';
     container.appendChild(createEmpty());
@@ -576,7 +621,7 @@ async function updateAIForecast() {
   const card = document.getElementById('forecastCard');
   const msg = document.getElementById('forecastMsg');
   const container = document.getElementById('forecastPredictions');
-  
+
   if (!card || !isOnline()) return;
 
   try {
@@ -587,11 +632,11 @@ async function updateAIForecast() {
     }
 
     card.classList.remove('hidden');
-    
+
     const diff = data.calorie_surplus;
     const absDiff = Math.abs(Math.round(diff));
     let advice = "";
-    
+
     if (diff > 100) {
       advice = `You are currently in a surplus of **${absDiff} kcal/day**. Our AI predicts a steady weight gain trajectory.`;
     } else if (diff < -100) {
@@ -599,9 +644,9 @@ async function updateAIForecast() {
     } else {
       advice = `You are eating very close to your maintenance level. Your weight is predicted to remain stable.`;
     }
-    
+
     msg.innerHTML = advice;
-    
+
     container.innerHTML = data.predictions.map(p => `
       <div class="fcm-item">
         <div class="fcm-val">${p.predicted_weight_kg} <small>kg</small></div>
@@ -696,12 +741,22 @@ function buildCharts(labels, calData, goal, wKeys, wVals, mealTotals) {
         datasets: [{ data: pieData, backgroundColor: Object.values(MEAL_COLORS), borderWidth: 0, hoverOffset: 6 }]
       },
       options: {
-        responsive: false, cutout: '65%',
+        responsive: true,             // fills container width
+        maintainAspectRatio: false,
+        cutout: '65%',
         plugins: {
-          legend: { position: 'bottom', labels: { color: tickC, font: { size: 11 }, padding: 8 } },
+          legend: {
+            display: false            // hide built-in legend (we'll add a custom one)
+          },
           tooltip: { backgroundColor: tooltipBg, titleColor: tickC, bodyColor: dark ? '#e2eaf8' : '#0f1b2d' }
         }
       }
+    });
+    // Update custom legend values
+    const pTotal = pieData.reduce((a, b) => a + b, 0) || 1;
+    ['bf', 'lu', 'di', 'sn'].forEach((id, i) => {
+      const el = document.getElementById('pie-' + id);
+      if (el) el.textContent = pieData[i] + ' kcal (' + Math.round(pieData[i] / pTotal * 100) + '%)';
     });
   }
 }
@@ -813,6 +868,21 @@ function navigate(page) {
   if (page === 'alerts') updateAlertsUI();
 }
 
+// ─── CHART RESIZE FIX ────────────────────
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const progressActive = document.getElementById('page-progress')?.classList.contains('active');
+    if (progressActive) {
+      if (APP.charts.cal) { APP.charts.cal.destroy(); APP.charts.cal = null; }
+      if (APP.charts.wt) { APP.charts.wt.destroy(); APP.charts.wt = null; }
+      if (APP.charts.pie) { APP.charts.pie.destroy(); APP.charts.pie = null; }
+      updateProgressUI();
+    }
+  }, 150);
+});
+
 // ─── DARK MODE ───────────────────────────
 function applyTheme() {
   document.body.classList.toggle('light', !APP.dark);
@@ -909,15 +979,15 @@ async function requestNotifPermission() {
   }
 
   updatePushStatus('Requesting...');
-  
+
   try {
     const perm = await Notification.requestPermission();
     console.log('[FCM] Permission result:', perm);
-    
+
     if (perm === 'granted') {
       // Wait for service worker registration to complete
       if (swReady) await swReady;
-      
+
       if (!swRegistration) {
         console.warn('[FCM] No service worker registration available');
         updatePushStatus('SW Error');
@@ -927,7 +997,7 @@ async function requestNotifPermission() {
       if (typeof firebase !== 'undefined' && firebase.messaging) {
         const messaging = firebase.messaging();
         console.log('[FCM] Requesting FCM token...');
-        
+
         const token = await messaging.getToken({
           serviceWorkerRegistration: swRegistration,
           vapidKey: 'BKmk9Dsa89PuOx9Tj0aGNBxIjG4BeZFNQC9-YQjmXWK4RsFxtmnw0FzNa-NlpbA_uZ6XKmpDRN5RY0ofHl1fua4'
@@ -955,7 +1025,7 @@ async function requestNotifPermission() {
             }
             addNotification('goal', title, body, 'goal');
           });
-          
+
           scheduleMealReminders();
         } else {
           updatePushStatus('No Token');
@@ -1273,7 +1343,7 @@ async function enterApp(page) {
     // Send any pending FCM token now that we have a JWT
     sendFcmTokenToServer();
   }
-  
+
   if (APP.alertSettings.enabled) {
     scheduleMealReminders();
   }
@@ -1519,6 +1589,16 @@ function init() {
     save(); updateHomeUI();
   });
 
+  document.getElementById('mobFoodLog')?.addEventListener('click', e => {
+    const btn = e.target.closest('.fli-del');
+    if (!btn) return;
+    const { meal, idx } = btn.dataset;
+    todayLog()[meal].splice(+idx, 1);
+    save();
+    if (isOnline()) api('/meals/' + btn.dataset.id, { method: 'DELETE' });
+    updateHomeUI();
+  });
+
   // Modal
   document.getElementById('modalClose').onclick = closeModal;
   document.getElementById('foodModal').addEventListener('click', e => {
@@ -1575,21 +1655,21 @@ function init() {
 
   captureBtn.onclick = async () => {
     if (!cameraStream) return;
-    
+
     cameraCanvas.width = cameraPreview.videoWidth;
     cameraCanvas.height = cameraPreview.videoHeight;
     const ctx = cameraCanvas.getContext('2d');
     ctx.drawImage(cameraPreview, 0, 0);
     const base64Image = cameraCanvas.toDataURL('image/jpeg', 0.8);
-    
+
     cameraStream.getTracks().forEach(t => t.stop());
     cameraStream = null;
     cameraPreview.srcObject = null;
-    
+
     captureBtn.classList.add('hidden');
     cancelCameraBtn.classList.add('hidden');
     scanLoader.classList.remove('hidden');
-    
+
     try {
       const token = localStorage.getItem('np_token');
       const res = await fetch('/api/v1/meals/scan', {
@@ -1601,7 +1681,7 @@ function init() {
         body: JSON.stringify({ image: base64Image })
       });
       const data = await res.json();
-      
+
       if (!res.ok) {
         showToast(data.error || 'Could not identify food, please enter manually');
       } else {
@@ -1680,9 +1760,10 @@ function init() {
   document.getElementById('logWeightBtn2')?.addEventListener('click', () => {
     logWeight(document.getElementById('weightLogInput2')?.value, 'weightHistory2', 'weightLogInput2');
   });
-  // Weight log — mobile
-  document.getElementById('logWeightMob')?.addEventListener('click', () => {
-    logWeight(document.getElementById('weightLogMob')?.value, null, 'weightLogMob');
+  // Weight log — mobile dashboard
+  document.getElementById('logWeightBtnMob')?.addEventListener('click', () => {
+    logWeight(document.getElementById('weightLogInputMob')?.value, null, 'weightLogInputMob');
+    updateHomeUI(); // Refresh UI to show new weight progress
   });
 
   // Topbar search
